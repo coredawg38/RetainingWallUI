@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "/usr/local/var/webdav/retainingWall/webui/logs/.e14ad87b4141463525a12fd118f91011dd5f3239-audit.json",
+    "files": [
+        {
+            "date": 1765426847887,
+            "name": "/usr/local/var/webdav/retainingWall/webui/logs/mcp-puppeteer-2025-12-10.log",
+            "hash": "2531b653a864dd99002dff80ae0ed3d23b3dfa9585784e35002ae082d79f0c25"
+        }
+    ],
+    "hashType": "sha256"
+}
