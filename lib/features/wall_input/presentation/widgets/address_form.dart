@@ -191,7 +191,7 @@ class _AddressFormState extends State<AddressForm> {
 }
 
 /// State dropdown selector with keyboard filtering support.
-class _StateDropdown extends StatelessWidget {
+class _StateDropdown extends StatefulWidget {
   final String? value;
   final ValueChanged<String>? onChanged;
   final bool required;
@@ -201,6 +201,60 @@ class _StateDropdown extends StatelessWidget {
     this.onChanged,
     this.required = true,
   });
+
+  @override
+  State<_StateDropdown> createState() => _StateDropdownState();
+}
+
+class _StateDropdownState extends State<_StateDropdown> {
+  final TextEditingController _controller = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+  final MenuController _menuController = MenuController();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.text = widget.value ?? '';
+    _focusNode.addListener(_handleFocusChange);
+  }
+
+  @override
+  void didUpdateWidget(_StateDropdown oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value && _controller.text != widget.value) {
+      _controller.text = widget.value ?? '';
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_handleFocusChange);
+    _focusNode.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleFocusChange() {
+    if (!_focusNode.hasFocus) {
+      // Close the dropdown menu when focus is lost
+      _menuController.close();
+
+      // Validate the typed text on focus out
+      final typedText = _controller.text.toUpperCase().trim();
+      if (_usStates.contains(typedText)) {
+        if (typedText != widget.value && widget.onChanged != null) {
+          widget.onChanged!(typedText);
+        }
+        _controller.text = typedText;
+      } else if (widget.value != null && widget.value!.isNotEmpty) {
+        // Revert to valid value if typed text is invalid
+        _controller.text = widget.value!;
+      } else {
+        // Clear invalid input
+        _controller.text = '';
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -215,7 +269,7 @@ class _StateDropdown extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                   ),
             ),
-            if (required)
+            if (widget.required)
               Text(
                 ' *',
                 style: TextStyle(
@@ -227,7 +281,10 @@ class _StateDropdown extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         DropdownMenu<String>(
-          initialSelection: value != null && _usStates.contains(value) ? value : null,
+          controller: _controller,
+          focusNode: _focusNode,
+          menuController: _menuController,
+          initialSelection: widget.value != null && _usStates.contains(widget.value) ? widget.value : null,
           enableFilter: true,
           enableSearch: true,
           requestFocusOnTap: true,
@@ -242,10 +299,10 @@ class _StateDropdown extends StatelessWidget {
                     label: state,
                   ))
               .toList(),
-          onSelected: onChanged != null
+          onSelected: widget.onChanged != null
               ? (newValue) {
                   if (newValue != null) {
-                    onChanged!(newValue);
+                    widget.onChanged!(newValue);
                   }
                 }
               : null,
