@@ -401,7 +401,7 @@ class _PricingTierCard extends StatelessWidget {
                           ),
                     ),
                     Text(
-                      '${price.toStringAsFixed(0)}',
+                      price.toStringAsFixed(0),
                       style: Theme.of(context).textTheme.displaySmall?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: colorScheme.primary,

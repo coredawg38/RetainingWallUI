@@ -4,7 +4,7 @@ This document describes the backend API endpoints required by the Retaining Wall
 
 ## Base URL
 
-Default: `http://localhost:8001/retainingwall`
+Default: `http://orca.local:8001/retainingwall`
 
 Configure via: `--dart-define=API_BASE_URL=https://your-server.com/retainingwall`
 

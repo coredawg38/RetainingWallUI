@@ -23,6 +23,32 @@ import 'package:flutter_stripe/flutter_stripe.dart';
 
 import '../../../core/services/stripe_service.dart';
 
+/// Logger for payment provider operations.
+class PaymentLogger {
+  static const String _tag = '[Payment]';
+
+  static void info(String message) {
+    final timestamp = DateTime.now().toIso8601String();
+    debugPrint('$_tag $timestamp INFO: $message');
+  }
+
+  static void error(String message, [Object? error, StackTrace? stackTrace]) {
+    final timestamp = DateTime.now().toIso8601String();
+    debugPrint('$_tag $timestamp ERROR: $message');
+    if (error != null) {
+      debugPrint('$_tag $timestamp ERROR DETAILS: $error');
+    }
+    if (stackTrace != null) {
+      debugPrint('$_tag $timestamp STACK TRACE: $stackTrace');
+    }
+  }
+
+  static void state(String message) {
+    final timestamp = DateTime.now().toIso8601String();
+    debugPrint('$_tag $timestamp STATE: $message');
+  }
+}
+
 /// Payment status enumeration.
 enum PaymentStatus {
   /// Payment not yet initiated.
@@ -175,19 +201,22 @@ class CardFormState {
 }
 
 /// Notifier for managing payment state with Stripe integration.
-class PaymentNotifier extends StateNotifier<PaymentState> {
-  final StripeService _stripeService;
+class PaymentNotifier extends Notifier<PaymentState> {
+  @override
+  PaymentState build() {
+    return const PaymentState();
+  }
 
-  PaymentNotifier({StripeService? stripeService})
-      : _stripeService = stripeService ?? StripeService(),
-        super(const PaymentState());
+  StripeService get _stripeService => ref.read(stripeServiceProvider);
 
   /// Initializes Stripe SDK.
   Future<void> initializeStripe() async {
+    PaymentLogger.info('initializeStripe() called');
     try {
       await _stripeService.initialize();
-    } catch (e) {
-      debugPrint('Failed to initialize Stripe: $e');
+      PaymentLogger.info('Stripe initialization completed');
+    } catch (e, stackTrace) {
+      PaymentLogger.error('Failed to initialize Stripe', e, stackTrace);
     }
   }
 
@@ -260,6 +289,10 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
     String? customerName,
     Map<String, String>? metadata,
   }) async {
+    PaymentLogger.info('processPayment() called');
+    PaymentLogger.info('Amount: \$$amount, Email: $email, Name: $customerName');
+
+    PaymentLogger.state('Transitioning to PROCESSING');
     state = state.copyWith(
       status: PaymentStatus.processing,
       amount: amount,
@@ -268,6 +301,7 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
     );
 
     try {
+      PaymentLogger.info('Calling _stripeService.processPayment()...');
       final result = await _stripeService.processPayment(
         amount: amount,
         email: email,
@@ -275,7 +309,10 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
         metadata: metadata,
       );
 
+      PaymentLogger.info('Payment result received: success=${result.success}');
       if (result.success) {
+        PaymentLogger.state('Transitioning to COMPLETED');
+        PaymentLogger.info('Transaction ID: ${result.transactionId}');
         state = state.copyWith(
           status: PaymentStatus.completed,
           paymentIntentId: result.paymentIntentId,
@@ -284,13 +321,17 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
         );
         return true;
       } else {
+        PaymentLogger.state('Transitioning to FAILED');
+        PaymentLogger.error('Payment failed: ${result.errorMessage}');
         state = state.copyWith(
           status: PaymentStatus.failed,
           errorMessage: result.errorMessage,
         );
         return false;
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      PaymentLogger.state('Transitioning to FAILED (exception)');
+      PaymentLogger.error('Payment exception', e, stackTrace);
       state = state.copyWith(
         status: PaymentStatus.failed,
         errorMessage: 'Payment failed: $e',
@@ -307,8 +348,12 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
     required String email,
     Map<String, String>? metadata,
   }) async {
+    PaymentLogger.info('processPaymentWithCard() called');
+    PaymentLogger.info('Amount: \$$amount, Email: $email');
+
     final cardForm = state.cardFormState;
     if (cardForm == null || !cardForm.isValid) {
+      PaymentLogger.error('Invalid card form state: ${cardForm == null ? "null" : "invalid"}');
       state = state.copyWith(
         status: PaymentStatus.failed,
         errorMessage: 'Invalid card details',
@@ -316,6 +361,7 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
       return false;
     }
 
+    PaymentLogger.state('Transitioning to PROCESSING');
     state = state.copyWith(
       status: PaymentStatus.processing,
       amount: amount,
@@ -325,11 +371,13 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
 
     try {
       // Create payment intent first
+      PaymentLogger.info('Creating payment intent...');
       final paymentIntent = await _stripeService.createPaymentIntent(
         amount: amount,
         email: email,
         metadata: metadata,
       );
+      PaymentLogger.info('Payment intent created: ${paymentIntent.paymentIntentId}');
 
       state = state.copyWith(
         clientSecret: paymentIntent.clientSecret,
@@ -340,8 +388,10 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
       final expiryParts = cardForm.expiryDate.split('/');
       final expMonth = int.parse(expiryParts[0]);
       final expYear = int.parse(expiryParts[1]);
+      PaymentLogger.info('Card expiry: $expMonth/${expYear + 2000}');
 
       // Confirm payment with card
+      PaymentLogger.info('Confirming payment with card...');
       final result = await _stripeService.confirmPaymentWithCard(
         clientSecret: paymentIntent.clientSecret,
         cardDetails: CardDetails(
@@ -352,7 +402,9 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
         ),
       );
 
+      PaymentLogger.info('Payment result: success=${result.success}');
       if (result.success) {
+        PaymentLogger.state('Transitioning to COMPLETED');
         state = state.copyWith(
           status: PaymentStatus.completed,
           transactionId: result.transactionId,
@@ -360,13 +412,17 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
         );
         return true;
       } else {
+        PaymentLogger.state('Transitioning to FAILED');
+        PaymentLogger.error('Payment failed: ${result.errorMessage}');
         state = state.copyWith(
           status: PaymentStatus.failed,
           errorMessage: result.errorMessage,
         );
         return false;
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      PaymentLogger.state('Transitioning to FAILED (exception)');
+      PaymentLogger.error('Payment exception', e, stackTrace);
       state = state.copyWith(
         status: PaymentStatus.failed,
         errorMessage: 'Payment failed: $e',
@@ -456,10 +512,7 @@ final stripeServiceProvider = Provider<StripeService>((ref) {
 
 /// Provider for payment state and notifier.
 final paymentProvider =
-    StateNotifierProvider<PaymentNotifier, PaymentState>((ref) {
-  final stripeService = ref.watch(stripeServiceProvider);
-  return PaymentNotifier(stripeService: stripeService);
-});
+    NotifierProvider<PaymentNotifier, PaymentState>(PaymentNotifier.new);
 
 /// Provider for whether payment is complete.
 final paymentCompleteProvider = Provider<bool>((ref) {

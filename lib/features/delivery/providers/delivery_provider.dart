@@ -127,10 +127,13 @@ class DeliveryState {
 }
 
 /// Notifier for managing delivery state.
-class DeliveryNotifier extends StateNotifier<DeliveryState> {
-  final ApiClient _apiClient;
+class DeliveryNotifier extends Notifier<DeliveryState> {
+  @override
+  DeliveryState build() {
+    return const DeliveryState();
+  }
 
-  DeliveryNotifier(this._apiClient) : super(const DeliveryState());
+  ApiClient get _apiClient => ref.read(apiClientProvider);
 
   /// Initializes the delivery state with request information.
   void initialize({
@@ -305,10 +308,7 @@ class DeliveryNotifier extends StateNotifier<DeliveryState> {
 
 /// Provider for delivery state and notifier.
 final deliveryProvider =
-    StateNotifierProvider<DeliveryNotifier, DeliveryState>((ref) {
-  final apiClient = ref.watch(apiClientProvider);
-  return DeliveryNotifier(apiClient);
-});
+    NotifierProvider<DeliveryNotifier, DeliveryState>(DeliveryNotifier.new);
 
 /// Provider for whether delivery is ready.
 final deliveryReadyProvider = Provider<bool>((ref) {

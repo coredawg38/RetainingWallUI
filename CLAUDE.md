@@ -69,7 +69,7 @@ lib/
 
 ### Backend Integration
 
-API base URL: `http://localhost:8001/retainingwall` (configured in `lib/core/constants/app_constants.dart`)
+API base URL: `http://orca.local:8001/retainingwall` (configured in `lib/core/constants/app_constants.dart`)
 
 **Endpoints:**
 - `POST /api/v1/design` - Submit wall design, returns requestId

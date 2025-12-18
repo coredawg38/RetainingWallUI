@@ -10,6 +10,7 @@
 /// ```
 library;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,6 +21,24 @@ import '../../../../shared/widgets/common_widgets.dart';
 import '../../../wall_input/data/models/retaining_wall_input.dart';
 import '../../../wall_input/providers/wall_input_provider.dart';
 import '../../providers/payment_provider.dart';
+
+/// Logger for PaymentPage operations.
+class _PageLogger {
+  static const String _tag = '[PaymentPage]';
+
+  static void info(String message) {
+    final timestamp = DateTime.now().toIso8601String();
+    debugPrint('$_tag $timestamp: $message');
+  }
+
+  static void error(String message, [Object? error]) {
+    final timestamp = DateTime.now().toIso8601String();
+    debugPrint('$_tag $timestamp ERROR: $message');
+    if (error != null) {
+      debugPrint('$_tag $timestamp ERROR DETAILS: $error');
+    }
+  }
+}
 
 /// Standalone payment page.
 class PaymentPage extends ConsumerStatefulWidget {
@@ -35,8 +54,11 @@ class _PaymentPageState extends ConsumerState<PaymentPage> {
   @override
   void initState() {
     super.initState();
+    _PageLogger.info('PaymentPage initState');
+    _PageLogger.info('Platform: kIsWeb=$kIsWeb');
     // Initialize Stripe when page loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _PageLogger.info('PostFrameCallback: initializing Stripe...');
       ref.read(paymentProvider.notifier).initializeStripe();
     });
   }
@@ -454,9 +476,13 @@ class _PaymentSheetSection extends ConsumerWidget {
   }
 
   Future<void> _processPaymentSheet(BuildContext context, WidgetRef ref) async {
+    _PageLogger.info('_processPaymentSheet() called');
     final wallState = ref.read(wallInputProvider);
     final email = wallState.input.customerInfo.email;
     final name = wallState.input.customerInfo.name;
+
+    _PageLogger.info('Processing payment for: $email, amount: \$${wallState.price}');
+    _PageLogger.info('Wall height: ${wallState.input.height}", material: ${wallState.input.materialLabel}');
 
     final success = await ref.read(paymentProvider.notifier).processPayment(
       amount: wallState.price,
@@ -468,8 +494,13 @@ class _PaymentSheetSection extends ConsumerWidget {
       },
     );
 
+    _PageLogger.info('Payment result: success=$success');
+
     if (success && context.mounted) {
+      _PageLogger.info('Payment successful, submitting design...');
       await _submitDesignAndNavigate(context, ref);
+    } else if (!success) {
+      _PageLogger.error('Payment failed or cancelled');
     }
   }
 

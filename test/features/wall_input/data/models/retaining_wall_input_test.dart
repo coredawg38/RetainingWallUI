@@ -123,8 +123,8 @@ void main() {
       expect(json['name'], equals('Jane Doe'));
       expect(json['email'], equals('jane@example.com'));
       expect(json['phone'], equals('555-5678'));
-      // The mailing_address is an Address object that can be converted to JSON
-      expect(json['mailing_address'], isA<Address>());
+      // The mailing_address is serialized to a Map (with explicitToJson: true)
+      expect(json['mailing_address'], isA<Map<String, dynamic>>());
     });
   });
 
@@ -178,9 +178,9 @@ void main() {
       expect(json['has_slab'], isTrue);
       expect(json['optimization_parameter'], equals(OptimizationType.excavation));
       expect(json['soil_stiffness'], equals(SoilStiffnessType.stiff));
-      // Nested objects are Address and CustomerInfo that can be serialized
-      expect(json['site_address'], isA<Address>());
-      expect(json['customer_info'], isA<CustomerInfo>());
+      // Nested objects are serialized to Maps (with explicitToJson: true)
+      expect(json['site_address'], isA<Map<String, dynamic>>());
+      expect(json['customer_info'], isA<Map<String, dynamic>>());
     });
 
     test('deserializes from JSON', () {

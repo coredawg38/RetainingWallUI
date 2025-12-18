@@ -6,24 +6,22 @@ part of 'retaining_wall_input.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$AddressImpl _$$AddressImplFromJson(Map<String, dynamic> json) =>
-    _$AddressImpl(
-      street: json['street'] as String? ?? '',
-      city: json['City'] as String? ?? '',
-      state: json['State'] as String? ?? '',
-      zipCode: (json['Zip Code'] as num?)?.toInt() ?? 0,
-    );
+_Address _$AddressFromJson(Map<String, dynamic> json) => _Address(
+  street: json['street'] as String? ?? '',
+  city: json['City'] as String? ?? '',
+  state: json['State'] as String? ?? '',
+  zipCode: (json['Zip Code'] as num?)?.toInt() ?? 0,
+);
 
-Map<String, dynamic> _$$AddressImplToJson(_$AddressImpl instance) =>
-    <String, dynamic>{
-      'street': instance.street,
-      'City': instance.city,
-      'State': instance.state,
-      'Zip Code': instance.zipCode,
-    };
+Map<String, dynamic> _$AddressToJson(_Address instance) => <String, dynamic>{
+  'street': instance.street,
+  'City': instance.city,
+  'State': instance.state,
+  'Zip Code': instance.zipCode,
+};
 
-_$CustomerInfoImpl _$$CustomerInfoImplFromJson(Map<String, dynamic> json) =>
-    _$CustomerInfoImpl(
+_CustomerInfo _$CustomerInfoFromJson(Map<String, dynamic> json) =>
+    _CustomerInfo(
       name: json['name'] as String? ?? '',
       email: json['email'] as String? ?? '',
       phone: json['phone'] as String? ?? '',
@@ -32,17 +30,17 @@ _$CustomerInfoImpl _$$CustomerInfoImplFromJson(Map<String, dynamic> json) =>
           : Address.fromJson(json['mailing_address'] as Map<String, dynamic>),
     );
 
-Map<String, dynamic> _$$CustomerInfoImplToJson(_$CustomerInfoImpl instance) =>
+Map<String, dynamic> _$CustomerInfoToJson(_CustomerInfo instance) =>
     <String, dynamic>{
       'name': instance.name,
       'email': instance.email,
       'phone': instance.phone,
-      'mailing_address': instance.mailingAddress,
+      'mailing_address': instance.mailingAddress.toJson(),
     };
 
-_$RetainingWallInputImpl _$$RetainingWallInputImplFromJson(
+_RetainingWallInput _$RetainingWallInputFromJson(
   Map<String, dynamic> json,
-) => _$RetainingWallInputImpl(
+) => _RetainingWallInput(
   height: (json['height'] as num?)?.toDouble() ?? WallConstraints.defaultHeight,
   material: (json['material'] as num?)?.toInt() ?? WallMaterialType.cmu,
   surcharge: (json['surcharge'] as num?)?.toInt() ?? SurchargeType.flat,
@@ -62,17 +60,16 @@ _$RetainingWallInputImpl _$$RetainingWallInputImplFromJson(
       : CustomerInfo.fromJson(json['customer_info'] as Map<String, dynamic>),
 );
 
-Map<String, dynamic> _$$RetainingWallInputImplToJson(
-  _$RetainingWallInputImpl instance,
-) => <String, dynamic>{
-  'height': instance.height,
-  'material': instance.material,
-  'surcharge': instance.surcharge,
-  'optimization_parameter': instance.optimizationParameter,
-  'soil_stiffness': instance.soilStiffness,
-  'topping': instance.topping,
-  'has_slab': instance.hasSlab,
-  'toe': instance.toe,
-  'site_address': instance.siteAddress,
-  'customer_info': instance.customerInfo,
-};
+Map<String, dynamic> _$RetainingWallInputToJson(_RetainingWallInput instance) =>
+    <String, dynamic>{
+      'height': instance.height,
+      'material': instance.material,
+      'surcharge': instance.surcharge,
+      'optimization_parameter': instance.optimizationParameter,
+      'soil_stiffness': instance.soilStiffness,
+      'topping': instance.topping,
+      'has_slab': instance.hasSlab,
+      'toe': instance.toe,
+      'site_address': instance.siteAddress.toJson(),
+      'customer_info': instance.customerInfo.toJson(),
+    };

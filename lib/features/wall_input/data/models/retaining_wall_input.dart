@@ -28,7 +28,8 @@ part 'retaining_wall_input.g.dart';
 ///
 /// Matches the JSON schema with property names as expected by the server.
 @freezed
-class Address with _$Address {
+sealed class Address with _$Address {
+  @JsonSerializable(explicitToJson: true)
   const factory Address({
     /// Street address line.
     @Default('') String street,
@@ -54,7 +55,8 @@ class Address with _$Address {
 ///
 /// Contains contact details and mailing address for the customer.
 @freezed
-class CustomerInfo with _$CustomerInfo {
+sealed class CustomerInfo with _$CustomerInfo {
+  @JsonSerializable(explicitToJson: true)
   const factory CustomerInfo({
     /// Customer's full name.
     @Default('') String name,
@@ -81,7 +83,8 @@ class CustomerInfo with _$CustomerInfo {
 /// - Site conditions (surcharge, soil stiffness, topping)
 /// - Site and customer information
 @freezed
-class RetainingWallInput with _$RetainingWallInput {
+sealed class RetainingWallInput with _$RetainingWallInput {
+  @JsonSerializable(explicitToJson: true)
   const factory RetainingWallInput({
     /// Wall height in inches (24-144).
     @Default(WallConstraints.defaultHeight) double height,

@@ -112,12 +112,14 @@ class WallInputState {
 }
 
 /// Notifier for managing wall input state.
-class WallInputNotifier extends StateNotifier<WallInputState> {
-  final ApiClient _apiClient;
-  final WallInputValidator _validator;
+class WallInputNotifier extends Notifier<WallInputState> {
+  @override
+  WallInputState build() {
+    return const WallInputState();
+  }
 
-  WallInputNotifier(this._apiClient, this._validator)
-      : super(const WallInputState());
+  ApiClient get _apiClient => ref.read(apiClientProvider);
+  WallInputValidator get _validator => ref.read(wallInputValidatorProvider);
 
   /// Updates the wall height.
   void updateHeight(double height) {
@@ -348,12 +350,7 @@ class WallInputNotifier extends StateNotifier<WallInputState> {
 
 /// Provider for the wall input state and notifier.
 final wallInputProvider =
-    StateNotifierProvider<WallInputNotifier, WallInputState>((ref) {
-  return WallInputNotifier(
-    ref.watch(apiClientProvider),
-    ref.watch(wallInputValidatorProvider),
-  );
-});
+    NotifierProvider<WallInputNotifier, WallInputState>(WallInputNotifier.new);
 
 /// Provider for just the current wall input (convenience accessor).
 final currentWallInputProvider = Provider<RetainingWallInput>((ref) {
