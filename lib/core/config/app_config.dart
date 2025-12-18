@@ -27,7 +27,7 @@ abstract final class AppConfig {
   /// Override with: --dart-define=STRIPE_PUBLISHABLE_KEY=pk_live_xxx
   static const String stripePublishableKey = String.fromEnvironment(
     'STRIPE_PUBLISHABLE_KEY',
-    defaultValue: 'pk_test_YOUR_PUBLISHABLE_KEY',
+    defaultValue: 'pk_test_51SVKxE0r8GpnUde9yg6oGsbY51nj0VqUs8WL21Jug7zuVBctDZ4LS6Z6jg906OROOJuVx2B5pffvdqnXIdO85sNP00kj9C8Z7j',
   );
 
   /// Whether we're running in demo mode (no backend required).
