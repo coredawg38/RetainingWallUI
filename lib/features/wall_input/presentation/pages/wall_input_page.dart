@@ -11,15 +11,13 @@
 /// ```
 library;
 
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_stripe/flutter_stripe.dart' hide Card;
 
 import '../../../../app/router.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../shared/widgets/common_widgets.dart';
-import '../../../payment/providers/payment_provider.dart';
+import '../../../../shared/widgets/payment_form_widget.dart';
 import '../../data/models/retaining_wall_input.dart';
 import '../../providers/wall_input_provider.dart';
 import '../widgets/address_form.dart';
@@ -259,8 +257,6 @@ class _PaymentStepContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final paymentState = ref.watch(paymentProvider);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -282,14 +278,25 @@ class _PaymentStepContent extends ConsumerWidget {
           subtitle: 'Secure payment via Stripe',
         ),
         const SizedBox(height: 16),
-        if (paymentState.isComplete)
-          _PaymentCompleteCard()
-        else
-          _PaymentForm(
-            price: state.price,
-            isProcessing: paymentState.isProcessing,
-            error: paymentState.errorMessage,
-          ),
+        PaymentFormWidget(
+          price: state.price,
+          email: state.input.customerInfo.email,
+          customerName: state.input.customerInfo.name,
+          metadata: {
+            'wall_height': state.input.height.toString(),
+            'material': state.input.materialLabel,
+          },
+          onPaymentSuccess: () async {
+            // Submit design after successful payment
+            final designSuccess =
+                await ref.read(wallInputProvider.notifier).submitDesign();
+            if (designSuccess) {
+              ref.read(wallInputProvider.notifier).nextStep();
+            }
+          },
+          showMethodToggle: true,
+          showSecurityInfo: false, // Compact view in wizard
+        ),
       ],
     );
   }
@@ -379,249 +386,6 @@ class _SummaryRow extends StatelessWidget {
               ),
         ),
       ],
-    );
-  }
-}
-
-/// Payment form with Stripe CardField (web) or Payment Sheet (mobile).
-///
-/// On web: Uses CardField widget to collect card details inline.
-/// On mobile: Shows a button that opens the native Payment Sheet.
-class _PaymentForm extends ConsumerStatefulWidget {
-  final double price;
-  final bool isProcessing;
-  final String? error;
-
-  const _PaymentForm({
-    required this.price,
-    required this.isProcessing,
-    this.error,
-  });
-
-  @override
-  ConsumerState<_PaymentForm> createState() => _PaymentFormState();
-}
-
-class _PaymentFormState extends ConsumerState<_PaymentForm> {
-  CardFieldInputDetails? _cardDetails;
-  final CardEditController _cardController = CardEditController();
-
-  @override
-  void dispose() {
-    _cardController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // On web: Show CardField for card input
-            // On mobile: Show info that Payment Sheet will open
-            if (kIsWeb) ...[
-              // CardField for web - collects card details inline
-              Text(
-                'Enter Card Details',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 60,
-                child: CardField(
-                  controller: _cardController,
-                  onCardChanged: (card) {
-                    setState(() {
-                      _cardDetails = card;
-                    });
-                  },
-                  style: TextStyle(
-                    color: colorScheme.onSurface,
-                    fontSize: 16,
-                  ),
-                  cursorColor: colorScheme.primary,
-                  enablePostalCode: false,
-                  numberHintText: '4242 4242 4242 4242',
-                  expirationHintText: 'MM/YY',
-                  cvcHintText: 'CVC',
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Test card: 4242 4242 4242 4242, any future date, any CVC',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-              ),
-            ] else ...[
-              // Mobile: Info about Payment Sheet
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: colorScheme.outline),
-                ),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.credit_card,
-                      size: 48,
-                      color: colorScheme.primary,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Secure Payment',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'A secure payment form will open when you tap Pay',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-            if (widget.error != null) ...[
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: colorScheme.errorContainer,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.error_outline, color: colorScheme.error),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        widget.error!,
-                        style: TextStyle(color: colorScheme.error),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: _canPay() ? () => _processPayment(context) : null,
-              icon: widget.isProcessing
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.lock),
-              label: Text(
-                widget.isProcessing
-                    ? 'Processing...'
-                    : 'Pay \$${widget.price.toStringAsFixed(2)}',
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.security,
-                  size: 16,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  'Secure payment powered by Stripe',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Whether the Pay button should be enabled.
-  bool _canPay() {
-    if (widget.isProcessing) return false;
-
-    // On web, require complete card details
-    if (kIsWeb) {
-      return _cardDetails?.complete ?? false;
-    }
-
-    // On mobile, always allow (Payment Sheet handles validation)
-    return true;
-  }
-
-  Future<void> _processPayment(BuildContext context) async {
-    final wallState = ref.read(wallInputProvider);
-    final email = wallState.input.customerInfo.email;
-    final name = wallState.input.customerInfo.name;
-
-    final success = await ref.read(paymentProvider.notifier).processPayment(
-          amount: widget.price,
-          email: email,
-          customerName: name,
-        );
-    if (success && context.mounted) {
-      // Submit design after successful payment
-      final designSuccess =
-          await ref.read(wallInputProvider.notifier).submitDesign();
-      if (designSuccess) {
-        ref.read(wallInputProvider.notifier).nextStep();
-      }
-    }
-  }
-}
-
-/// Payment complete card.
-class _PaymentCompleteCard extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Card(
-      color: colorScheme.primaryContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Icon(
-              Icons.check_circle,
-              size: 48,
-              color: colorScheme.primary,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Payment Successful',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: colorScheme.onPrimaryContainer,
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Your design is ready for download',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onPrimaryContainer,
-                  ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
