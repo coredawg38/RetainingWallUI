@@ -10,12 +10,18 @@
 library;
 
 import 'dart:convert';
+import 'dart:developer' as developer;
 
 import 'package:http/http.dart' as http;
 import 'package:test/test.dart';
 
 /// Backend base URL - matches AppConfig.apiBaseUrl default
 const String baseUrl = 'http://127.0.0.1:8080';
+
+/// Test logger that uses dart:developer log instead of print.
+void _log(String message) {
+  developer.log(message, name: 'IntegrationTest');
+}
 
 void main() {
   late http.Client client;
@@ -35,7 +41,7 @@ void main() {
       );
 
       expect(response.statusCode, equals(200));
-      print('Health check response: ${response.body}');
+      _log('Health check response: ${response.body}');
     });
   });
 
@@ -55,8 +61,8 @@ void main() {
         }),
       );
 
-      print('Payment intent response status: ${response.statusCode}');
-      print('Payment intent response body: ${response.body}');
+      _log('Payment intent response status: ${response.statusCode}');
+      _log('Payment intent response body: ${response.body}');
 
       expect(response.statusCode, equals(200));
 
@@ -124,7 +130,7 @@ void main() {
         }),
       );
 
-      print('Missing amount response: ${response.statusCode} - ${response.body}');
+      _log('Missing amount response: ${response.statusCode} - ${response.body}');
 
       // Expect error response (400 or 422)
       expect(response.statusCode, anyOf(equals(400), equals(422)));
@@ -140,7 +146,7 @@ void main() {
         }),
       );
 
-      print('Missing email response: ${response.statusCode} - ${response.body}');
+      _log('Missing email response: ${response.statusCode} - ${response.body}');
 
       // Backend may accept without email or return error - document behavior
       // If it accepts, should still return valid payment intent
@@ -157,7 +163,7 @@ void main() {
         body: 'not valid json',
       );
 
-      print('Invalid JSON response: ${response.statusCode} - ${response.body}');
+      _log('Invalid JSON response: ${response.statusCode} - ${response.body}');
 
       // Expect error response
       expect(response.statusCode, anyOf(equals(400), equals(422), equals(500)));
@@ -174,7 +180,7 @@ void main() {
         }),
       );
 
-      print('Zero amount response: ${response.statusCode} - ${response.body}');
+      _log('Zero amount response: ${response.statusCode} - ${response.body}');
 
       // Stripe requires minimum amount of 50 cents for USD
       // Expect error from either backend validation or Stripe
@@ -192,7 +198,7 @@ void main() {
         }),
       );
 
-      print('Negative amount response: ${response.statusCode} - ${response.body}');
+      _log('Negative amount response: ${response.statusCode} - ${response.body}');
 
       // Expect error response
       expect(response.statusCode, anyOf(equals(400), equals(422), equals(500)));
@@ -209,7 +215,7 @@ void main() {
         body: jsonEncode({}),
       );
 
-      print('Design endpoint response: ${response.statusCode}');
+      _log('Design endpoint response: ${response.statusCode}');
 
       // Should get a validation error, not 404
       expect(response.statusCode, isNot(equals(404)));
