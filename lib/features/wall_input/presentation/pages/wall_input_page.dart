@@ -290,8 +290,11 @@ class _PaymentStepContent extends ConsumerWidget {
             // Submit design after successful payment
             final designSuccess =
                 await ref.read(wallInputProvider.notifier).submitDesign();
-            if (designSuccess) {
-              ref.read(wallInputProvider.notifier).nextStep();
+            if (designSuccess && context.mounted) {
+              final response = ref.read(wallInputProvider).lastResponse;
+              if (response != null && response.success) {
+                context.goToDelivery(response.requestId);
+              }
             }
           },
           showMethodToggle: true,
