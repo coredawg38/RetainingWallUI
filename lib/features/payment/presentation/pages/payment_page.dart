@@ -76,7 +76,66 @@ class PaymentPage extends ConsumerWidget {
   }
 
   Future<void> _submitDesignAndNavigate(BuildContext context, WidgetRef ref) async {
-    final designSuccess = await ref.read(wallInputProvider.notifier).submitDesign();
+    // Get paymentIntentId from payment state
+    final paymentState = ref.read(paymentProvider);
+    final paymentIntentId = paymentState.paymentIntentId;
+
+    if (paymentIntentId == null || paymentIntentId.isEmpty) {
+      // For demo mode, use a placeholder
+      if (paymentState.transactionId?.startsWith('demo_') == true ||
+          paymentState.transactionId?.startsWith('txn_demo_') == true) {
+        // Demo mode - use a demo payment intent ID
+        final demoPaymentIntentId = 'pi_demo_${DateTime.now().millisecondsSinceEpoch}';
+        await _confirmAndSubmitDesign(context, ref, demoPaymentIntentId, isDemo: true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Payment intent ID not found. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    await _confirmAndSubmitDesign(context, ref, paymentIntentId);
+  }
+
+  Future<void> _confirmAndSubmitDesign(
+    BuildContext context,
+    WidgetRef ref,
+    String paymentIntentId, {
+    bool isDemo = false,
+  }) async {
+    final apiClient = ref.read(apiClientProvider);
+
+    // For non-demo payments, confirm payment with backend
+    if (!isDemo) {
+      final confirmResponse = await apiClient.confirmPayment(
+        paymentIntentId: paymentIntentId,
+      );
+
+      if (!confirmResponse.success) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                confirmResponse.errorMessage ??
+                    'Payment verification failed. Please contact support.',
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+    }
+
+    // Submit design with payment intent ID
+    final designSuccess = await ref.read(wallInputProvider.notifier).submitDesign(
+          paymentIntentId: paymentIntentId,
+        );
+
     if (designSuccess && context.mounted) {
       final response = ref.read(wallInputProvider).lastResponse;
       if (response != null && response.success) {

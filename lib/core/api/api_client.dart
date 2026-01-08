@@ -83,6 +83,61 @@ class DesignFiles {
   }
 }
 
+/// Response from the confirm payment endpoint.
+class ConfirmPaymentResponse {
+  /// Whether the payment was successfully confirmed.
+  final bool success;
+
+  /// The payment intent ID.
+  final String paymentIntentId;
+
+  /// Payment status (succeeded, failed).
+  final String status;
+
+  /// Stripe status from verification.
+  final String? stripeStatus;
+
+  /// Failure code if payment failed.
+  final String? failureCode;
+
+  /// Failure message if payment failed.
+  final String? failureMessage;
+
+  /// Error message if the request failed.
+  final String? errorMessage;
+
+  const ConfirmPaymentResponse({
+    required this.success,
+    required this.paymentIntentId,
+    required this.status,
+    this.stripeStatus,
+    this.failureCode,
+    this.failureMessage,
+    this.errorMessage,
+  });
+
+  factory ConfirmPaymentResponse.fromJson(Map<String, dynamic> json) {
+    return ConfirmPaymentResponse(
+      success: json['success'] as bool? ?? false,
+      paymentIntentId: json['paymentIntentId'] as String? ?? '',
+      status: json['status'] as String? ?? 'unknown',
+      stripeStatus: json['stripeStatus'] as String?,
+      failureCode: json['failureCode'] as String?,
+      failureMessage: json['failureMessage'] as String?,
+      errorMessage: json['error'] as String?,
+    );
+  }
+
+  factory ConfirmPaymentResponse.error(String message) {
+    return ConfirmPaymentResponse(
+      success: false,
+      paymentIntentId: '',
+      status: 'error',
+      errorMessage: message,
+    );
+  }
+}
+
 /// Status of a design request.
 class DesignStatus {
   /// Current status of the request.
@@ -150,15 +205,28 @@ class ApiClient {
   })  : _client = client ?? http.Client(),
         baseUrl = baseUrl ?? ApiConstants.baseUrl;
 
-  /// Submits a wall design to the server for processing.
+  /// Confirms payment with the backend server.
   ///
-  /// [wallInput] should be a JSON-serializable map matching the
-  /// RetainingWallInput schema.
+  /// [paymentIntentId] is the Stripe payment intent ID.
+  /// [cardLast4] and [cardBrand] are optional card details.
+  /// [stripeResponse] is the optional Stripe response data.
   ///
-  /// Returns a [DesignResponse] with the request ID and initial status.
-  Future<DesignResponse> submitDesign(Map<String, dynamic> wallInput) async {
+  /// Returns a [ConfirmPaymentResponse] with the confirmation status.
+  Future<ConfirmPaymentResponse> confirmPayment({
+    required String paymentIntentId,
+    String? cardLast4,
+    String? cardBrand,
+    Map<String, dynamic>? stripeResponse,
+  }) async {
     try {
-      final uri = Uri.parse('$baseUrl${ApiConstants.designEndpoint}');
+      final uri = Uri.parse('$baseUrl/api/v1/confirm-payment');
+      final body = <String, dynamic>{
+        'paymentIntentId': paymentIntentId,
+      };
+      if (cardLast4 != null) body['cardLast4'] = cardLast4;
+      if (cardBrand != null) body['cardBrand'] = cardBrand;
+      if (stripeResponse != null) body['stripeResponse'] = stripeResponse;
+
       final response = await _client
           .post(
             uri,
@@ -166,13 +234,59 @@ class ApiClient {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
             },
-            body: jsonEncode(wallInput),
+            body: jsonEncode(body),
+          )
+          .timeout(Duration(seconds: ApiConstants.timeoutSeconds));
+
+      if (response.statusCode == 200 || response.statusCode == 402) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        return ConfirmPaymentResponse.fromJson(json);
+      } else {
+        return ConfirmPaymentResponse.error(
+          'Server returned status ${response.statusCode}: ${response.body}',
+        );
+      }
+    } catch (e) {
+      return ConfirmPaymentResponse.error('Failed to confirm payment: $e');
+    }
+  }
+
+  /// Submits a wall design to the server for processing.
+  ///
+  /// [wallInput] should be a JSON-serializable map matching the
+  /// RetainingWallInput schema.
+  /// [paymentIntentId] is the confirmed Stripe payment intent ID.
+  ///
+  /// Returns a [DesignResponse] with the request ID and initial status.
+  Future<DesignResponse> submitDesign(
+    Map<String, dynamic> wallInput, {
+    required String paymentIntentId,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrl${ApiConstants.designEndpoint}');
+
+      // Add payment_intent_id to the request
+      final requestBody = Map<String, dynamic>.from(wallInput);
+      requestBody['payment_intent_id'] = paymentIntentId;
+
+      final response = await _client
+          .post(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode(requestBody),
           )
           .timeout(Duration(seconds: ApiConstants.timeoutSeconds));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final json = jsonDecode(response.body) as Map<String, dynamic>;
         return DesignResponse.fromJson(json);
+      } else if (response.statusCode == 402) {
+        return DesignResponse.error(
+          'Payment not confirmed. Please complete payment before generating design.',
+        );
       } else {
         return DesignResponse.error(
           'Server returned status ${response.statusCode}: ${response.body}',

@@ -308,7 +308,9 @@ class WallInputNotifier extends Notifier<WallInputState> {
   }
 
   /// Submits the design to the server.
-  Future<bool> submitDesign() async {
+  ///
+  /// [paymentIntentId] is required - the confirmed Stripe payment intent ID.
+  Future<bool> submitDesign({required String paymentIntentId}) async {
     if (!validate()) {
       return false;
     }
@@ -319,7 +321,10 @@ class WallInputNotifier extends Notifier<WallInputState> {
     );
 
     try {
-      final response = await _apiClient.submitDesign(state.input.toJson());
+      final response = await _apiClient.submitDesign(
+        state.input.toJson(),
+        paymentIntentId: paymentIntentId,
+      );
 
       state = state.copyWith(
         isSubmitting: false,
