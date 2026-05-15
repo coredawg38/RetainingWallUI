@@ -29,7 +29,7 @@ on:
       - 'web/**'
       - 'pubspec.yaml'
       - 'pubspec.lock'
-      - '.github/workflows/deploy.yml'
+      - '.github/workflows/webui-deploy.yml'
   pull_request:
     branches: [main, master]
   workflow_dispatch:
@@ -146,7 +146,7 @@ jobs:
 
     environment:
       name: production
-      url: https://${{ secrets.EC2_HOST }}
+      url: https://${{ env.SERVER_HOST }}
 
     steps:
       - name: Download WASM build artifact
