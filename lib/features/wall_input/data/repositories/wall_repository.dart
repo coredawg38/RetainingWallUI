@@ -27,9 +27,18 @@ class WallRepository {
 
   /// Submits a wall design for processing.
   ///
+  /// [paymentIntentId] is the confirmed Stripe payment intent ID, required
+  /// by the backend to authorize design generation.
+  ///
   /// Returns a [DesignResponse] with the request ID and initial status.
-  Future<DesignResponse> submitDesign(RetainingWallInput input) async {
-    final response = await _apiClient.submitDesign(input.toJson());
+  Future<DesignResponse> submitDesign(
+    RetainingWallInput input, {
+    required String paymentIntentId,
+  }) async {
+    final response = await _apiClient.submitDesign(
+      input.toJson(),
+      paymentIntentId: paymentIntentId,
+    );
 
     if (response.success) {
       _designCache[response.requestId] = response;

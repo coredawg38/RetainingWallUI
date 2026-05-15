@@ -18,6 +18,7 @@ import '../../../../app/router.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../shared/widgets/common_widgets.dart';
 import '../../../../shared/widgets/payment_form_widget.dart';
+import '../../../payment/providers/payment_provider.dart';
 import '../../data/models/retaining_wall_input.dart';
 import '../../providers/wall_input_provider.dart';
 import '../widgets/address_form.dart';
@@ -287,21 +288,71 @@ class _PaymentStepContent extends ConsumerWidget {
             'material': state.input.materialLabel,
           },
           onPaymentSuccess: () async {
-            // Submit design after successful payment
-            final designSuccess =
-                await ref.read(wallInputProvider.notifier).submitDesign();
-            if (designSuccess && context.mounted) {
-              final response = ref.read(wallInputProvider).lastResponse;
-              if (response != null && response.success) {
-                context.goToDelivery(response.requestId);
-              }
-            }
+            await _submitDesignAfterPayment(context, ref);
           },
           showMethodToggle: true,
           showSecurityInfo: false, // Compact view in wizard
         ),
       ],
     );
+  }
+
+  Future<void> _submitDesignAfterPayment(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final paymentState = ref.read(paymentProvider);
+    var paymentIntentId = paymentState.paymentIntentId;
+    final isDemo = paymentState.transactionId?.startsWith('demo_') == true ||
+        paymentState.transactionId?.startsWith('txn_demo_') == true;
+
+    if (paymentIntentId == null || paymentIntentId.isEmpty) {
+      if (isDemo) {
+        paymentIntentId = 'pi_demo_${DateTime.now().millisecondsSinceEpoch}';
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Payment intent ID not found. Please try again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+    }
+
+    if (!isDemo) {
+      final apiClient = ref.read(apiClientProvider);
+      final confirmResponse = await apiClient.confirmPayment(
+        paymentIntentId: paymentIntentId,
+      );
+      if (!confirmResponse.success) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                confirmResponse.errorMessage ??
+                    'Payment verification failed. Please contact support.',
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+    }
+
+    final designSuccess =
+        await ref.read(wallInputProvider.notifier).submitDesign(
+              paymentIntentId: paymentIntentId,
+            );
+    if (designSuccess && context.mounted) {
+      final response = ref.read(wallInputProvider).lastResponse;
+      if (response != null && response.success) {
+        context.goToDelivery(response.requestId);
+      }
+    }
   }
 }
 
