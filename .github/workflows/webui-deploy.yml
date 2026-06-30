@@ -24,12 +24,6 @@ name: Build and Deploy Flutter Web
 on:
   push:
     branches: [main, master]
-    paths:
-      - 'lib/**'
-      - 'web/**'
-      - 'pubspec.yaml'
-      - 'pubspec.lock'
-      - '.github/workflows/webui-deploy.yml'
   pull_request:
     branches: [main, master]
   workflow_dispatch:
