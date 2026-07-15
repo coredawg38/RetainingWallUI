@@ -2,6 +2,10 @@
 # Repair broken nginx site config from old .mjs sed deploys, then ensure
 # .mjs is served as text/javascript (Chrome ES modules).
 #
+# Fixes the common failure mode where GNU sed inserted literal "\n" characters
+# instead of newlines, which left a top-level `location` and hid `server {`
+# mid-line so nginx reported: location directive is not allowed here …:2
+#
 # Usage on EC2:
 #   sudo bash fix-and-ensure-mjs-mime.sh
 set -euo pipefail
@@ -14,32 +18,103 @@ if [[ ${EUID:-$(id -u)} -ne 0 ]]; then
 fi
 
 echo "[mjs] repairing $NGINX_CONF if needed"
+echo "[mjs] diagnostics:"
+ls -la "$NGINX_CONF" || true
+wc -l -c "$NGINX_CONF" || true
+echo "----- first 25 lines -----"
+head -n 25 "$NGINX_CONF" || true
+echo "----- end head -----"
 
 python3 - "$NGINX_CONF" <<'PY'
-import pathlib, re, sys
+import pathlib, re, sys, shutil, datetime
 
 path = pathlib.Path(sys.argv[1])
-text = path.read_text(encoding="utf-8")
+if not path.exists():
+    raise SystemExit(f"missing config: {path}")
+
+text = path.read_text(encoding="utf-8", errors="replace")
 original = text
 
-# Remove .mjs location blocks that appear BEFORE the first server { }
-m = re.search(r"(?m)^\s*server\s*\{", text)
-if not m:
-    raise SystemExit(f"no server block found in {path}")
+# Backup before mutating
+stamp = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+backup = path.with_suffix(path.suffix + f".bak-{stamp}")
+shutil.copy2(path, backup)
+print(f"[mjs] backup: {backup}")
 
-head, tail = text[: m.start()], text[m.start() :]
-head, n = re.subn(
-    r"(?ms)^[ \t]*(?:#.*\n)*[ \t]*location\s+~\*\s+\\\.mjs\$\s*\{.*?^[ \t]*\}\s*\n?",
-    "",
-    head,
-)
-text = head + tail
+# 1) Turn literal backslash-n sequences from botched sed into real newlines
+if "\\n" in text:
+    text = text.replace("\\n", "\n")
+    print("[mjs] converted literal \\n sequences into real newlines")
+
+# 2) Remove EVERY location ~* \.mjs$ block (we'll rely on mime.types instead)
+n_loc = 0
+while True:
+    new_text, count = re.subn(
+        r"(?ms)^[ \t]*(?:#.*\n)*[ \t]*location\s+~\*\s+\\\.mjs\$\s*\{.*?^[ \t]*\}\s*\n?",
+        "",
+        text,
+        count=1,
+    )
+    if count == 0:
+        # Also catch mid-line / single-line forms after bad sed
+        new_text, count = re.subn(
+            r"(?s)\s*location\s+~\*\s+\\\.mjs\$\s*\{.*?\}",
+            "\n",
+            text,
+            count=1,
+        )
+    if count == 0:
+        break
+    text = new_text
+    n_loc += count
+if n_loc:
+    print(f"[mjs] removed {n_loc} .mjs location block(s)")
+else:
+    print("[mjs] no .mjs location blocks found to remove")
+
+# 3) Verify a server block exists (anywhere, not only start-of-line after repair)
+if not re.search(r"(?m)^\s*server\s*\{", text) and not re.search(r"\bserver\s*\{", text):
+    # Try restoring from an existing backup beside the file
+    candidates = sorted(path.parent.glob(path.name + ".bak*"), reverse=True)
+    candidates += sorted(path.parent.glob("retainingwall*~"), reverse=True)
+    restored = False
+    for cand in candidates:
+        try:
+            cand_text = cand.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        if re.search(r"\bserver\s*\{", cand_text):
+            text = cand_text
+            if "\\n" in text:
+                text = text.replace("\\n", "\n")
+            # Strip mjs locations from restored backup too
+            text = re.sub(
+                r"(?ms)^[ \t]*(?:#.*\n)*[ \t]*location\s+~\*\s+\\\.mjs\$\s*\{.*?^[ \t]*\}\s*\n?",
+                "",
+                text,
+            )
+            text = re.sub(r"(?s)\s*location\s+~\*\s+\\\.mjs\$\s*\{.*?\}", "\n", text)
+            print(f"[mjs] restored server config from {cand}")
+            restored = True
+            break
+    if not restored:
+        print("[mjs] ERROR: no server { block found after repair.")
+        print("[mjs] File may be irrecoverably corrupted.")
+        print("[mjs] Re-run deploy/ec2/setup-certbot.sh on the server, or restore nginx config from backup.")
+        print("----- file preview -----")
+        print(text[:1500])
+        raise SystemExit(2)
 
 if text != original:
     path.write_text(text, encoding="utf-8")
-    print(f"[mjs] removed {n} orphaned top-level .mjs location block(s)")
+    print(f"[mjs] wrote repaired config ({len(text)} bytes)")
 else:
-    print("[mjs] no orphaned top-level .mjs location blocks")
+    print("[mjs] config unchanged after repair pass")
+
+# Final sanity
+if not re.search(r"(?m)^\s*server\s*\{", text):
+    raise SystemExit("[mjs] ERROR: server { still not at line start after repair")
+print("[mjs] server block(s) present")
 PY
 
 echo "[mjs] ensuring mime.types maps mjs"
