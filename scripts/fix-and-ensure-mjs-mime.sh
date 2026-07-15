@@ -2,9 +2,8 @@
 # Repair broken nginx site config from old .mjs sed deploys, then ensure
 # .mjs is served as text/javascript (Chrome ES modules).
 #
-# Fixes the common failure mode where GNU sed inserted literal "\n" characters
-# instead of newlines, which left a top-level `location` and hid `server {`
-# mid-line so nginx reported: location directive is not allowed here …:2
+# If the site file was truncated (only the bottom of a server block remains),
+# rebuild a full HTTP+HTTPS config from the known-good template.
 #
 # Usage on EC2:
 #   sudo bash fix-and-ensure-mjs-mime.sh
@@ -12,6 +11,7 @@ set -euo pipefail
 
 NGINX_CONF="${NGINX_CONF:-/etc/nginx/sites-available/retainingwall}"
 MIME_TYPES="${MIME_TYPES:-/etc/nginx/mime.types}"
+DOMAIN_NAME="${DOMAIN_NAME:-}"
 
 if [[ ${EUID:-$(id -u)} -ne 0 ]]; then
   exec sudo -n bash "$0" "$@"
@@ -21,89 +21,201 @@ echo "[mjs] repairing $NGINX_CONF if needed"
 echo "[mjs] diagnostics:"
 ls -la "$NGINX_CONF" || true
 wc -l -c "$NGINX_CONF" || true
-echo "----- first 25 lines -----"
-head -n 25 "$NGINX_CONF" || true
+echo "----- first 30 lines -----"
+head -n 30 "$NGINX_CONF" || true
 echo "----- end head -----"
 
-python3 - "$NGINX_CONF" <<'PY'
-import pathlib, re, sys, shutil, datetime
+# Prefer an existing Let's Encrypt cert directory for the domain
+if [[ -z "$DOMAIN_NAME" ]]; then
+  if [[ -d /etc/letsencrypt/live ]]; then
+    DOMAIN_NAME="$(find /etc/letsencrypt/live -mindepth 1 -maxdepth 1 -type d ! -name README -printf '%f\n' | head -n 1 || true)"
+  fi
+fi
+DOMAIN_NAME="${DOMAIN_NAME:-retainingwallplan.com}"
+echo "[mjs] using domain: $DOMAIN_NAME"
 
-path = pathlib.Path(sys.argv[1])
+export NGINX_CONF MIME_TYPES DOMAIN_NAME
+
+python3 <<'PY'
+import os, pathlib, re, shutil, datetime
+
+path = pathlib.Path(os.environ["NGINX_CONF"])
+domain = os.environ["DOMAIN_NAME"]
+cert = pathlib.Path(f"/etc/letsencrypt/live/{domain}/fullchain.pem")
+key = pathlib.Path(f"/etc/letsencrypt/live/{domain}/privkey.pem")
+
 if not path.exists():
     raise SystemExit(f"missing config: {path}")
 
 text = path.read_text(encoding="utf-8", errors="replace")
 original = text
 
-# Backup before mutating
-stamp = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
-backup = path.with_suffix(path.suffix + f".bak-{stamp}")
+stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+backup = path.with_name(path.name + f".bak-{stamp}")
 shutil.copy2(path, backup)
 print(f"[mjs] backup: {backup}")
 
-# 1) Turn literal backslash-n sequences from botched sed into real newlines
+# Convert literal \n from botched sed
 if "\\n" in text:
     text = text.replace("\\n", "\n")
     print("[mjs] converted literal \\n sequences into real newlines")
 
-# 2) Remove EVERY location ~* \.mjs$ block (we'll rely on mime.types instead)
-n_loc = 0
-while True:
-    new_text, count = re.subn(
+def has_server_block(s: str) -> bool:
+    return bool(re.search(r"(?m)^\s*server\s*\{", s))
+
+def strip_mjs_locations(s: str) -> str:
+    s = re.sub(
         r"(?ms)^[ \t]*(?:#.*\n)*[ \t]*location\s+~\*\s+\\\.mjs\$\s*\{.*?^[ \t]*\}\s*\n?",
         "",
-        text,
-        count=1,
+        s,
     )
-    if count == 0:
-        # Also catch mid-line / single-line forms after bad sed
-        new_text, count = re.subn(
-            r"(?s)\s*location\s+~\*\s+\\\.mjs\$\s*\{.*?\}",
-            "\n",
-            text,
-            count=1,
-        )
-    if count == 0:
-        break
-    text = new_text
-    n_loc += count
-if n_loc:
-    print(f"[mjs] removed {n_loc} .mjs location block(s)")
-else:
-    print("[mjs] no .mjs location blocks found to remove")
+    s = re.sub(r"(?s)\s*location\s+~\*\s+\\\.mjs\$\s*\{.*?\}", "\n", s)
+    return s
 
-# 3) Verify a server block exists (anywhere, not only start-of-line after repair)
-if not re.search(r"(?m)^\s*server\s*\{", text) and not re.search(r"\bserver\s*\{", text):
-    # Try restoring from an existing backup beside the file
+text = strip_mjs_locations(text)
+
+# Try older backups that still contain a full server block
+if not has_server_block(text):
     candidates = sorted(path.parent.glob(path.name + ".bak*"), reverse=True)
-    candidates += sorted(path.parent.glob("retainingwall*~"), reverse=True)
-    restored = False
     for cand in candidates:
+        if cand == backup:
+            continue
         try:
             cand_text = cand.read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
-        if re.search(r"\bserver\s*\{", cand_text):
+        cand_text = cand_text.replace("\\n", "\n")
+        cand_text = strip_mjs_locations(cand_text)
+        if has_server_block(cand_text) and "ssl_certificate" in cand_text:
             text = cand_text
-            if "\\n" in text:
-                text = text.replace("\\n", "\n")
-            # Strip mjs locations from restored backup too
-            text = re.sub(
-                r"(?ms)^[ \t]*(?:#.*\n)*[ \t]*location\s+~\*\s+\\\.mjs\$\s*\{.*?^[ \t]*\}\s*\n?",
-                "",
-                text,
-            )
-            text = re.sub(r"(?s)\s*location\s+~\*\s+\\\.mjs\$\s*\{.*?\}", "\n", text)
-            print(f"[mjs] restored server config from {cand}")
-            restored = True
+            print(f"[mjs] restored full config from {cand}")
             break
-    if not restored:
-        print("[mjs] ERROR: no server { block found after repair.")
-        print("[mjs] File may be irrecoverably corrupted.")
-        print("[mjs] Re-run deploy/ec2/setup-certbot.sh on the server, or restore nginx config from backup.")
-        print("----- file preview -----")
-        print(text[:1500])
-        raise SystemExit(2)
+
+def build_full_config(domain: str) -> str:
+    # Known-good template (matches deploy/ec2/setup-certbot.sh).
+    # .mjs MIME handled via mime.types + an INSIDE-server location using default_type.
+    return f"""# Retaining Wall Nginx Configuration
+# Domain: {domain}
+# Regenerated by fix-and-ensure-mjs-mime.sh after config corruption
+# SSL: Let's Encrypt
+
+limit_req_zone $binary_remote_addr zone=api_limit:10m rate=10r/s;
+limit_req_zone $binary_remote_addr zone=general_limit:10m rate=30r/s;
+
+server {{
+    listen 80;
+    listen [::]:80;
+    server_name {domain};
+
+    location /.well-known/acme-challenge/ {{
+        root /var/www/certbot;
+    }}
+
+    location / {{
+        return 301 https://$host$request_uri;
+    }}
+}}
+
+server {{
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name {domain};
+
+    ssl_certificate /etc/letsencrypt/live/{domain}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{domain}/privkey.pem;
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:SSL:50m;
+    ssl_session_tickets off;
+
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+
+    add_header Strict-Transport-Security "max-age=63072000" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    root /var/www/retainingwall;
+    index index.html;
+
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_types text/plain text/css text/xml application/json application/javascript application/rss+xml application/atom+xml image/svg+xml;
+
+    client_max_body_size 10M;
+
+    location /api/ {{
+        limit_req zone=api_limit burst=20 nodelay;
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 120s;
+        proxy_read_timeout 120s;
+    }}
+
+    location /files/ {{
+        limit_req zone=general_limit burst=10 nodelay;
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_read_timeout 300s;
+        proxy_buffering off;
+    }}
+
+    location /health {{
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+    }}
+
+    # Chrome requires JS MIME for ES modules (.mjs)
+    location ~* \\.mjs$ {{
+        default_type text/javascript;
+        types {{ }}
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        access_log off;
+    }}
+
+    location ~* \\.(js|css|wasm|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {{
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        access_log off;
+    }}
+
+    location / {{
+        limit_req zone=general_limit burst=50 nodelay;
+        try_files $uri $uri/ /index.html;
+    }}
+
+    location ~ /\\. {{
+        deny all;
+        access_log off;
+        log_not_found off;
+    }}
+
+    access_log /var/log/nginx/retainingwall_access.log;
+    error_log /var/log/nginx/retainingwall_error.log;
+}}
+"""
+
+if not has_server_block(text):
+    if not cert.is_file() or not key.is_file():
+        raise SystemExit(
+            f"[mjs] ERROR: config truncated and certs missing under /etc/letsencrypt/live/{domain}/. "
+            "Run setup-certbot.sh on the server."
+        )
+    print(f"[mjs] config truncated (no server block) — regenerating full site for {domain}")
+    text = build_full_config(domain)
 
 if text != original:
     path.write_text(text, encoding="utf-8")
@@ -111,9 +223,8 @@ if text != original:
 else:
     print("[mjs] config unchanged after repair pass")
 
-# Final sanity
-if not re.search(r"(?m)^\s*server\s*\{", text):
-    raise SystemExit("[mjs] ERROR: server { still not at line start after repair")
+if not has_server_block(text):
+    raise SystemExit("[mjs] ERROR: server { still missing after repair")
 print("[mjs] server block(s) present")
 PY
 
@@ -131,6 +242,24 @@ else
   echo "[mjs] mime.types updated with mjs"
 fi
 
-nginx -t
+# limit_req_zone may already be defined elsewhere — fall back without zones if needed
+if ! nginx -t 2>/tmp/nginx-t.err; then
+  if grep -q 'duplicate.*zone\|already (defined\|duplicate limit_req_zone' /tmp/nginx-t.err; then
+    echo "[mjs] duplicate limit_req_zone detected — rewriting without zone definitions"
+    python3 - <<'PY'
+import os, pathlib, re
+path = pathlib.Path(os.environ["NGINX_CONF"])
+text = path.read_text(encoding="utf-8")
+text = re.sub(r"(?m)^limit_req_zone\s+.*\n", "", text)
+path.write_text(text, encoding="utf-8")
+print("[mjs] removed limit_req_zone lines from site config")
+PY
+    nginx -t
+  else
+    cat /tmp/nginx-t.err
+    exit 1
+  fi
+fi
+
 systemctl reload nginx
 echo "[mjs] nginx OK — .mjs should be text/javascript in Chrome"
