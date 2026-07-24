@@ -50,6 +50,9 @@ class WallInputState {
   /// Whether a submission is in progress.
   final bool isSubmitting;
 
+  /// Whether a preview PDF is being generated.
+  final bool isGeneratingPreview;
+
   /// Last submission response, if any.
   final DesignResponse? lastResponse;
 
@@ -63,6 +66,7 @@ class WallInputState {
     this.input = const RetainingWallInput(),
     this.currentStep = WizardStep.parameters,
     this.isSubmitting = false,
+    this.isGeneratingPreview = false,
     this.lastResponse,
     this.validationErrors = const [],
     this.errorMessage,
@@ -73,6 +77,7 @@ class WallInputState {
     RetainingWallInput? input,
     WizardStep? currentStep,
     bool? isSubmitting,
+    bool? isGeneratingPreview,
     DesignResponse? lastResponse,
     List<String>? validationErrors,
     String? errorMessage,
@@ -81,6 +86,8 @@ class WallInputState {
       input: input ?? this.input,
       currentStep: currentStep ?? this.currentStep,
       isSubmitting: isSubmitting ?? this.isSubmitting,
+      isGeneratingPreview:
+          isGeneratingPreview ?? this.isGeneratingPreview,
       lastResponse: lastResponse ?? this.lastResponse,
       validationErrors: validationErrors ?? this.validationErrors,
       errorMessage: errorMessage,
@@ -339,6 +346,40 @@ class WallInputNotifier extends Notifier<WallInputState> {
         errorMessage: 'Failed to submit design: $e',
       );
       return false;
+    }
+  }
+
+  /// Requests a preview PDF from the server (no payment required).
+  ///
+  /// Returns the PDF bytes on success, or null on failure.
+  Future<List<int>?> requestPreviewPdf() async {
+    if (!state.input.hasValidWallParameters) {
+      state = state.copyWith(
+        errorMessage: 'Enter valid wall parameters before generating a preview.',
+      );
+      return null;
+    }
+
+    state = state.copyWith(
+      isGeneratingPreview: true,
+      errorMessage: null,
+    );
+
+    try {
+      final result = await _apiClient.requestPreviewPdf(state.input.toJson());
+
+      state = state.copyWith(
+        isGeneratingPreview: false,
+        errorMessage: result.errorMessage,
+      );
+
+      return result.bytes;
+    } catch (e) {
+      state = state.copyWith(
+        isGeneratingPreview: false,
+        errorMessage: 'Failed to generate preview: $e',
+      );
+      return null;
     }
   }
 

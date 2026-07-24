@@ -15,6 +15,9 @@ abstract final class ApiConstants {
   /// Design submission endpoint.
   static const String designEndpoint = '/api/v1/design';
 
+  /// Preview PDF generation endpoint (no payment required).
+  static const String previewEndpoint = '/api/v1/preview';
+
   /// Status check endpoint (append /{requestId}).
   static const String statusEndpoint = '/api/v1/status';
 

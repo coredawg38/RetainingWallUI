@@ -47,6 +47,15 @@ class WallRepository {
     return response;
   }
 
+  /// Requests a preview PDF (no payment required).
+  ///
+  /// Returns PDF bytes on success, or null with [errorMessage] on failure.
+  Future<({List<int>? bytes, String? errorMessage})> requestPreviewPdf(
+    RetainingWallInput input,
+  ) {
+    return _apiClient.requestPreviewPdf(input.toJson());
+  }
+
   /// Gets the status of a design request.
   ///
   /// [requestId] is the unique identifier for the design.

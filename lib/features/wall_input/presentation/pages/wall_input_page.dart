@@ -14,6 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/router.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/utils/pdf_download.dart';
 import '../../../../shared/widgets/common_widgets.dart';
 import '../../../../shared/widgets/payment_form_widget.dart';
 import '../../../payment/providers/payment_provider.dart';
@@ -41,8 +42,10 @@ class WallInputPage extends ConsumerWidget {
         ),
       ),
       body: LoadingOverlay(
-        isLoading: state.isSubmitting,
-        message: 'Processing your design...',
+        isLoading: state.isSubmitting || state.isGeneratingPreview,
+        message: state.isGeneratingPreview
+            ? 'Generating preview...'
+            : 'Processing your design...',
         child: Align(
           alignment: Alignment.topCenter,
           child: ConstrainedBox(
@@ -535,36 +538,87 @@ class _NavigationButtons extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notifier = ref.read(wallInputProvider.notifier);
+    final canPreview = state.input.hasValidWallParameters &&
+        !state.isSubmitting &&
+        !state.isGeneratingPreview;
 
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (state.canGoBack)
-            OutlinedButton.icon(
-              onPressed: notifier.previousStep,
-              icon: const Icon(Icons.arrow_back),
-              label: const Text('Back'),
-            ),
-          const Spacer(),
-          if (state.currentStep != WizardStep.delivery &&
-              state.currentStep != WizardStep.payment)
-            FilledButton.icon(
-              onPressed: state.canProceed ? notifier.nextStep : null,
-              icon: const Icon(Icons.arrow_forward),
-              label: Text(
-                state.currentStep == WizardStep.customerInfo
-                    ? 'Proceed to Payment'
-                    : 'Continue',
-              ),
-            ),
-          if (state.currentStep == WizardStep.delivery)
-            FilledButton.icon(
-              onPressed: () => context.goToHome(),
-              icon: const Icon(Icons.check),
-              label: const Text('Done'),
-            ),
+          Row(
+            children: [
+              if (state.canGoBack)
+                OutlinedButton.icon(
+                  onPressed: notifier.previousStep,
+                  icon: const Icon(Icons.arrow_back),
+                  label: const Text('Back'),
+                ),
+              const Spacer(),
+              if (state.currentStep != WizardStep.delivery &&
+                  state.currentStep != WizardStep.payment)
+                FilledButton.icon(
+                  onPressed: state.canProceed ? notifier.nextStep : null,
+                  icon: const Icon(Icons.arrow_forward),
+                  label: Text(
+                    state.currentStep == WizardStep.customerInfo
+                        ? 'Proceed to Payment'
+                        : 'Continue',
+                  ),
+                ),
+              if (state.currentStep == WizardStep.delivery)
+                FilledButton.icon(
+                  onPressed: () => context.goToHome(),
+                  icon: const Icon(Icons.check),
+                  label: const Text('Done'),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: canPreview
+                ? () => _onViewPreview(context, ref)
+                : null,
+            icon: state.isGeneratingPreview
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.visibility),
+            label: const Text('View Preview'),
+          ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _onViewPreview(BuildContext context, WidgetRef ref) async {
+    final bytes =
+        await ref.read(wallInputProvider.notifier).requestPreviewPdf();
+    if (!context.mounted) return;
+
+    if (bytes == null) {
+      final error = ref.read(wallInputProvider).errorMessage;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error ?? 'Failed to generate preview PDF'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final downloaded = downloadPdfBytes(bytes, 'PreviewDrawing.pdf');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          downloaded
+              ? 'Preview PDF downloaded'
+              : 'Preview generated, but download is only supported on web',
+        ),
+        backgroundColor: downloaded ? null : Colors.orange,
       ),
     );
   }
