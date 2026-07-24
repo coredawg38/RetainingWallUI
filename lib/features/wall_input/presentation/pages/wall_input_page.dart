@@ -1,8 +1,6 @@
 /// Wall Input Page
 ///
-/// Main design page with split layout:
-/// - Left side: Real-time wall preview
-/// - Right side: Wizard steps for input
+/// Design page with wizard steps for wall parameter entry.
 ///
 /// Usage:
 /// ```dart
@@ -24,9 +22,8 @@ import '../../providers/wall_input_provider.dart';
 import '../widgets/address_form.dart';
 import '../widgets/customer_form.dart';
 import '../widgets/wall_form.dart';
-import '../widgets/wall_preview.dart';
 
-/// Main wall design input page with split layout.
+/// Main wall design input page.
 class WallInputPage extends ConsumerWidget {
   const WallInputPage({super.key});
 
@@ -46,87 +43,13 @@ class WallInputPage extends ConsumerWidget {
       body: LoadingOverlay(
         isLoading: state.isSubmitting,
         message: 'Processing your design...',
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            // Responsive layout - stack on narrow screens
-            if (constraints.maxWidth < 900) {
-              return _MobileLayout(state: state);
-            }
-            return _DesktopLayout(state: state);
-          },
-        ),
-      ),
-    );
-  }
-}
-
-/// Desktop layout with side-by-side preview and wizard.
-class _DesktopLayout extends ConsumerWidget {
-  final WallInputState state;
-
-  const _DesktopLayout({required this.state});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // Left side - Preview
-        Expanded(
-          flex: 5,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: WallPreview(
-              input: state.input,
-              error: state.errorMessage,
-            ),
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: _WizardPanel(state: state),
           ),
         ),
-        // Divider
-        const VerticalDivider(width: 1),
-        // Right side - Wizard
-        Expanded(
-          flex: 4,
-          child: _WizardPanel(state: state),
-        ),
-      ],
-    );
-  }
-}
-
-/// Mobile layout with tabbed preview and wizard.
-class _MobileLayout extends ConsumerWidget {
-  final WallInputState state;
-
-  const _MobileLayout({required this.state});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return DefaultTabController(
-      length: 2,
-      child: Column(
-        children: [
-          const TabBar(
-            tabs: [
-              Tab(text: 'Design', icon: Icon(Icons.edit)),
-              Tab(text: 'Preview', icon: Icon(Icons.preview)),
-            ],
-          ),
-          Expanded(
-            child: TabBarView(
-              children: [
-                _WizardPanel(state: state),
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: WallPreview(
-                    input: state.input,
-                    error: state.errorMessage,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
