@@ -143,7 +143,6 @@ class _StepContent extends ConsumerWidget {
               onSoilStiffnessChanged: notifier.updateSoilStiffness,
               onToppingChanged: notifier.updateTopping,
               onHasSlabChanged: notifier.updateHasSlab,
-              onToeChanged: notifier.updateToe,
             ),
             const SizedBox(height: 24),
             AddressForm(

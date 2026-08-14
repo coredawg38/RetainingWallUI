@@ -177,13 +177,6 @@ class WallInputNotifier extends Notifier<WallInputState> {
     );
   }
 
-  /// Updates the toe length.
-  void updateToe(int toe) {
-    state = state.copyWith(
-      input: state.input.copyWith(toe: toe),
-    );
-  }
-
   /// Updates the site address.
   void updateSiteAddress(Address address) {
     state = state.copyWith(

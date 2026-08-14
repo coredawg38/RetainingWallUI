@@ -45,9 +45,6 @@ class WallForm extends StatelessWidget {
   /// Callback for has slab changes.
   final ValueChanged<bool>? onHasSlabChanged;
 
-  /// Callback for toe changes.
-  final ValueChanged<int>? onToeChanged;
-
   /// Whether the form is enabled.
   final bool enabled;
 
@@ -61,7 +58,6 @@ class WallForm extends StatelessWidget {
     this.onSoilStiffnessChanged,
     this.onToppingChanged,
     this.onHasSlabChanged,
-    this.onToeChanged,
     this.enabled = true,
   });
 
@@ -73,11 +69,6 @@ class WallForm extends StatelessWidget {
         _HeightInput(
           value: input.height,
           onChanged: enabled ? onHeightChanged : null,
-        ),
-        const SizedBox(height: 16),
-        _ToeInput(
-          value: input.toe,
-          onChanged: enabled ? onToeChanged : null,
         ),
         const SizedBox(height: 16),
         _MaterialDropdown(
@@ -167,67 +158,6 @@ class _HeightInputState extends State<_HeightInput> {
         final doubleValue = double.tryParse(value);
         if (doubleValue != null && widget.onChanged != null) {
           widget.onChanged!(doubleValue);
-        }
-      },
-      inputFormatters: [
-        FilteringTextInputFormatter.digitsOnly,
-      ],
-    );
-  }
-}
-
-/// Toe length input field.
-class _ToeInput extends StatefulWidget {
-  final int value;
-  final ValueChanged<int>? onChanged;
-
-  const _ToeInput({
-    required this.value,
-    this.onChanged,
-  });
-
-  @override
-  State<_ToeInput> createState() => _ToeInputState();
-}
-
-class _ToeInputState extends State<_ToeInput> {
-  late TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.value.toString());
-  }
-
-  @override
-  void didUpdateWidget(_ToeInput oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.value != widget.value) {
-      final newText = widget.value.toString();
-      if (_controller.text != newText) {
-        _controller.text = newText;
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return LabeledTextField(
-      label: 'Toe Length (inches)',
-      controller: _controller,
-      keyboardType: TextInputType.number,
-      helperText: '${WallConstraints.minToe}-${WallConstraints.maxToe} inches',
-      prefixIcon: Icons.straighten,
-      onChanged: (value) {
-        final intValue = int.tryParse(value);
-        if (intValue != null && widget.onChanged != null) {
-          widget.onChanged!(intValue);
         }
       },
       inputFormatters: [
