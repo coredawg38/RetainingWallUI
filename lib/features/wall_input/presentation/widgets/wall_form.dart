@@ -63,44 +63,75 @@ class WallForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _HeightInput(
-          value: input.height,
-          onChanged: enabled ? onHeightChanged : null,
-        ),
-        const SizedBox(height: 16),
-        _MaterialDropdown(
-          value: input.material,
-          onChanged: enabled ? onMaterialChanged : null,
-        ),
-        const SizedBox(height: 16),
-        _SlabSwitch(
-          value: input.hasSlab,
-          onChanged: enabled ? onHasSlabChanged : null,
-        ),
-        const SizedBox(height: 16),
-        _SurchargeDropdown(
-          value: input.surcharge,
-          onChanged: enabled ? onSurchargeChanged : null,
-        ),
-        const SizedBox(height: 16),
-        _SoilStiffnessDropdown(
-          value: input.soilStiffness,
-          onChanged: enabled ? onSoilStiffnessChanged : null,
-        ),
-        const SizedBox(height: 16),
-        _ToppingInput(
-          value: input.topping,
-          onChanged: enabled ? onToppingChanged : null,
-        ),
-        const SizedBox(height: 16),
-        _OptimizationDropdown(
-          value: input.optimizationParameter,
-          onChanged: enabled ? onOptimizationChanged : null,
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final twoCol = constraints.maxWidth >= 520;
+        const gap = 10.0;
+
+        Widget pair(Widget a, Widget b) {
+          if (!twoCol) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                a,
+                const SizedBox(height: gap),
+                b,
+              ],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: a),
+              const SizedBox(width: gap),
+              Expanded(child: b),
+            ],
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            pair(
+              _HeightInput(
+                value: input.height,
+                onChanged: enabled ? onHeightChanged : null,
+              ),
+              _MaterialDropdown(
+                value: input.material,
+                onChanged: enabled ? onMaterialChanged : null,
+              ),
+            ),
+            const SizedBox(height: gap),
+            _SlabSwitch(
+              value: input.hasSlab,
+              onChanged: enabled ? onHasSlabChanged : null,
+            ),
+            const SizedBox(height: gap),
+            pair(
+              _SurchargeDropdown(
+                value: input.surcharge,
+                onChanged: enabled ? onSurchargeChanged : null,
+              ),
+              _SoilStiffnessDropdown(
+                value: input.soilStiffness,
+                onChanged: enabled ? onSoilStiffnessChanged : null,
+              ),
+            ),
+            const SizedBox(height: gap),
+            pair(
+              _ToppingInput(
+                value: input.topping,
+                onChanged: enabled ? onToppingChanged : null,
+              ),
+              _OptimizationDropdown(
+                value: input.optimizationParameter,
+                onChanged: enabled ? onOptimizationChanged : null,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -148,11 +179,10 @@ class _HeightInputState extends State<_HeightInput> {
   @override
   Widget build(BuildContext context) {
     return LabeledTextField(
-      label: 'Wall Height (inches)',
+      label: 'Height (${WallConstraints.minHeight.toInt()}-${WallConstraints.maxHeight.toInt()}") in)',
       controller: _controller,
       keyboardType: TextInputType.number,
-      helperText:
-          '${WallConstraints.minHeight.toInt()}-${WallConstraints.maxHeight.toInt()} inches',
+      dense: true,
       prefixIcon: Icons.height,
       onChanged: (value) {
         final doubleValue = double.tryParse(value);
@@ -180,8 +210,9 @@ class _MaterialDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return LabeledDropdown<int>(
-      label: 'Wall Material',
+      label: 'Material',
       value: value,
+      dense: true,
       onChanged: onChanged != null
           ? (newValue) {
               if (newValue != null) onChanged!(newValue);
@@ -209,13 +240,35 @@ class _SlabSwitch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: SwitchListTile(
-        title: const Text('Has Slab'),
-        subtitle: const Text('Include a slab at the top of the wall'),
-        value: value,
-        onChanged: onChanged,
-        secondary: const Icon(Icons.layers),
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.layers, size: 18, color: colorScheme.onSurfaceVariant),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Has slab at top of wall',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+            ),
+          ),
+          Transform.scale(
+            scale: 0.85,
+            child: Switch(
+              value: value,
+              onChanged: onChanged,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -236,12 +289,12 @@ class _SurchargeDropdown extends StatelessWidget {
     return LabeledDropdown<int>(
       label: 'Surcharge / Slope',
       value: value,
+      dense: true,
       onChanged: onChanged != null
           ? (newValue) {
               if (newValue != null) onChanged!(newValue);
             }
           : null,
-      helperText: 'Slope condition above the wall',
       items: SurchargeType.labels.entries
           .map((entry) => DropdownMenuItem<int>(
                 value: entry.key,
@@ -267,6 +320,7 @@ class _SoilStiffnessDropdown extends StatelessWidget {
     return LabeledDropdown<int>(
       label: 'Soil Stiffness',
       value: value,
+      dense: true,
       onChanged: onChanged != null
           ? (newValue) {
               if (newValue != null) onChanged!(newValue);
@@ -325,10 +379,10 @@ class _ToppingInputState extends State<_ToppingInput> {
   @override
   Widget build(BuildContext context) {
     return LabeledTextField(
-      label: 'Topsoil Thickness (inches)',
+      label: 'Topsoil (${WallConstraints.minTopping}-${WallConstraints.maxTopping} in)',
       controller: _controller,
       keyboardType: TextInputType.number,
-      helperText: '${WallConstraints.minTopping}-${WallConstraints.maxTopping} inches',
+      dense: true,
       prefixIcon: Icons.grass,
       onChanged: (value) {
         final intValue = int.tryParse(value);
@@ -358,12 +412,12 @@ class _OptimizationDropdown extends StatelessWidget {
     return LabeledDropdown<int>(
       label: 'Optimize For',
       value: value,
+      dense: true,
       onChanged: onChanged != null
           ? (newValue) {
               if (newValue != null) onChanged!(newValue);
             }
           : null,
-      helperText: 'What should the design optimize?',
       items: OptimizationType.labels.entries
           .map((entry) => DropdownMenuItem<int>(
                 value: entry.key,

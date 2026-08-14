@@ -106,37 +106,39 @@ class _CustomerFormState extends State<CustomerForm> {
       children: [
         const SectionHeader(
           title: 'Contact Information',
-          subtitle: 'Your contact details for document delivery',
+          subtitle: 'Details for document delivery',
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
         LabeledTextField(
           label: 'Full Name',
           controller: _nameController,
           hint: 'John Doe',
           required: true,
           enabled: widget.enabled,
+          dense: true,
           prefixIcon: Icons.person,
           onChanged: widget.onNameChanged,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 10),
         LabeledTextField(
           label: 'Email Address',
           controller: _emailController,
           hint: 'john@example.com',
           required: true,
           enabled: widget.enabled,
+          dense: true,
           prefixIcon: Icons.email,
           keyboardType: TextInputType.emailAddress,
-          helperText: 'Documents will be sent to this email',
           onChanged: widget.onEmailChanged,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 10),
         LabeledTextField(
           label: 'Phone Number',
           controller: _phoneController,
           hint: '(555) 123-4567',
           required: true,
           enabled: widget.enabled,
+          dense: true,
           prefixIcon: Icons.phone,
           keyboardType: TextInputType.phone,
           inputFormatters: [
@@ -144,37 +146,26 @@ class _CustomerFormState extends State<CustomerForm> {
           ],
           onChanged: widget.onPhoneChanged,
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 12),
         // Delivery info card
         Card(
           color: colorScheme.primaryContainer.withValues(alpha: 0.3),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Row(
               children: [
                 Icon(
                   Icons.email_outlined,
+                  size: 20,
                   color: colorScheme.primary,
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Digital Delivery',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Your engineering documents will be available for immediate download and sent to your email.',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                      ),
-                    ],
+                  child: Text(
+                    'Documents download immediately and are emailed to you.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
                   ),
                 ),
               ],

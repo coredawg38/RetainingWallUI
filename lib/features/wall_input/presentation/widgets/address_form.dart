@@ -125,17 +125,18 @@ class _AddressFormState extends State<AddressForm> {
           title: widget.title,
           subtitle: widget.subtitle,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
         LabeledTextField(
           label: 'Street Address',
           controller: _streetController,
           hint: '123 Main Street',
           required: widget.required,
           enabled: widget.enabled,
+          dense: true,
           prefixIcon: Icons.location_on,
           onChanged: widget.onStreetChanged,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 10),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -147,10 +148,11 @@ class _AddressFormState extends State<AddressForm> {
                 hint: 'City',
                 required: widget.required,
                 enabled: widget.enabled,
+                dense: true,
                 onChanged: widget.onCityChanged,
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 10),
             Expanded(
               flex: 2,
               child: _StateDropdown(
@@ -163,15 +165,16 @@ class _AddressFormState extends State<AddressForm> {
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 10),
         SizedBox(
-          width: 150,
+          width: 140,
           child: LabeledTextField(
             label: 'ZIP Code',
             controller: _zipController,
             hint: '12345',
             required: widget.required,
             enabled: widget.enabled,
+            dense: true,
             keyboardType: TextInputType.number,
             inputFormatters: [
               FilteringTextInputFormatter.digitsOnly,
@@ -265,7 +268,7 @@ class _StateDropdownState extends State<_StateDropdown> {
           children: [
             Text(
               'State',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
                     fontWeight: FontWeight.w500,
                   ),
             ),
@@ -275,11 +278,12 @@ class _StateDropdownState extends State<_StateDropdown> {
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.error,
                   fontWeight: FontWeight.bold,
+                  fontSize: 12,
                 ),
               ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         DropdownMenu<String>(
           controller: _controller,
           focusNode: _focusNode,
@@ -290,8 +294,10 @@ class _StateDropdownState extends State<_StateDropdown> {
           requestFocusOnTap: true,
           hintText: 'Select',
           expandedInsets: EdgeInsets.zero,
+          textStyle: Theme.of(context).textTheme.bodyMedium,
           inputDecorationTheme: const InputDecorationTheme(
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           ),
           dropdownMenuEntries: _usStates
               .map((state) => DropdownMenuEntry<String>(

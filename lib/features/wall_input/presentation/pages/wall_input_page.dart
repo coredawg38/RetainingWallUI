@@ -70,7 +70,7 @@ class _WizardPanel extends ConsumerWidget {
       children: [
         // Progress indicator
         Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: WizardProgressIndicator(
             totalSteps: WizardStep.values.length,
             currentStep: state.currentStep.index,
@@ -109,7 +109,7 @@ class _StepContent extends ConsumerWidget {
     final notifier = ref.read(wallInputProvider.notifier);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -118,7 +118,7 @@ class _StepContent extends ConsumerWidget {
               message: state.errorMessage!,
               onDismiss: notifier.clearError,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
           ],
           _buildStepContent(context, ref),
         ],
@@ -153,7 +153,7 @@ class _StepContent extends ConsumerWidget {
               onEmailChanged: notifier.updateCustomerEmail,
               onPhoneChanged: notifier.updateCustomerPhone,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 12),
             AddressForm(
               title: 'Site Address',
               subtitle: 'Where the wall will be built',
@@ -543,55 +543,63 @@ class _NavigationButtons extends ConsumerWidget {
         !state.isSubmitting &&
         !state.isGeneratingPreview;
 
+    final buttonStyle = OutlinedButton.styleFrom(
+      visualDensity: VisualDensity.compact,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    );
+    final filledStyle = FilledButton.styleFrom(
+      visualDensity: VisualDensity.compact,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    );
+
     return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Row(
         children: [
-          if (showPreview) ...[
+          if (state.canGoBack)
             OutlinedButton.icon(
+              style: buttonStyle,
+              onPressed: notifier.previousStep,
+              icon: const Icon(Icons.arrow_back, size: 18),
+              label: const Text('Back'),
+            ),
+          if (showPreview) ...[
+            if (state.canGoBack) const SizedBox(width: 8),
+            OutlinedButton.icon(
+              style: buttonStyle,
               onPressed: canPreview
                   ? () => _onViewPreview(context, ref)
                   : null,
               icon: state.isGeneratingPreview
                   ? const SizedBox(
-                      width: 18,
-                      height: 18,
+                      width: 16,
+                      height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.visibility),
-              label: const Text('View Preview'),
+                  : const Icon(Icons.visibility, size: 18),
+              label: const Text('Preview'),
             ),
-            const SizedBox(height: 12),
           ],
-          Row(
-            children: [
-              if (state.canGoBack)
-                OutlinedButton.icon(
-                  onPressed: notifier.previousStep,
-                  icon: const Icon(Icons.arrow_back),
-                  label: const Text('Back'),
-                ),
-              const Spacer(),
-              if (state.currentStep != WizardStep.delivery &&
-                  state.currentStep != WizardStep.payment)
-                FilledButton.icon(
-                  onPressed: state.canProceed ? notifier.nextStep : null,
-                  icon: const Icon(Icons.arrow_forward),
-                  label: Text(
-                    state.currentStep == WizardStep.customerInfo
-                        ? 'Proceed to Payment'
-                        : 'Continue',
-                  ),
-                ),
-              if (state.currentStep == WizardStep.delivery)
-                FilledButton.icon(
-                  onPressed: () => context.goToHome(),
-                  icon: const Icon(Icons.check),
-                  label: const Text('Done'),
-                ),
-            ],
-          ),
+          const Spacer(),
+          if (state.currentStep != WizardStep.delivery &&
+              state.currentStep != WizardStep.payment)
+            FilledButton.icon(
+              style: filledStyle,
+              onPressed: state.canProceed ? notifier.nextStep : null,
+              icon: const Icon(Icons.arrow_forward, size: 18),
+              label: Text(
+                state.currentStep == WizardStep.customerInfo
+                    ? 'Proceed to Payment'
+                    : 'Continue',
+              ),
+            ),
+          if (state.currentStep == WizardStep.delivery)
+            FilledButton.icon(
+              style: filledStyle,
+              onPressed: () => context.goToHome(),
+              icon: const Icon(Icons.check, size: 18),
+              label: const Text('Done'),
+            ),
         ],
       ),
     );

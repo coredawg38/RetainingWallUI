@@ -17,6 +17,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// A loading overlay that displays a spinner over content.
 class LoadingOverlay extends StatelessWidget {
@@ -152,7 +153,7 @@ class SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
           Expanded(
@@ -224,13 +225,16 @@ class LabeledTextField extends StatelessWidget {
   final ValueChanged<String>? onSubmitted;
 
   /// Input formatters.
-  final List<dynamic>? inputFormatters;
+  final List<TextInputFormatter>? inputFormatters;
 
   /// Prefix icon.
   final IconData? prefixIcon;
 
   /// Suffix widget.
   final Widget? suffix;
+
+  /// Compact layout with smaller text and tighter padding.
+  final bool dense;
 
   const LabeledTextField({
     super.key,
@@ -250,41 +254,59 @@ class LabeledTextField extends StatelessWidget {
     this.inputFormatters,
     this.prefixIcon,
     this.suffix,
+    this.dense = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final labelStyle = dense
+        ? Theme.of(context).textTheme.labelMedium?.copyWith(
+              fontWeight: FontWeight.w500,
+            )
+        : Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w500,
+            );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Text(
-              label,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
-            ),
+            Text(label, style: labelStyle),
             if (required)
               Text(
                 ' *',
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.error,
                   fontWeight: FontWeight.bold,
+                  fontSize: dense ? 12 : null,
                 ),
               ),
           ],
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: dense ? 4 : 8),
         TextFormField(
           controller: controller,
           initialValue: controller == null ? initialValue : null,
+          style: dense ? Theme.of(context).textTheme.bodyMedium : null,
           decoration: InputDecoration(
             hintText: hint,
             helperText: helperText,
             errorText: errorText,
-            prefixIcon: prefixIcon != null ? Icon(prefixIcon) : null,
+            isDense: dense,
+            contentPadding: dense
+                ? const EdgeInsets.symmetric(horizontal: 12, vertical: 10)
+                : null,
+            prefixIcon: prefixIcon != null
+                ? Icon(prefixIcon, size: dense ? 18 : 24)
+                : null,
+            prefixIconConstraints: dense
+                ? const BoxConstraints(minWidth: 36, minHeight: 36)
+                : null,
             suffix: suffix,
+            helperStyle: dense
+                ? Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11)
+                : null,
           ),
           enabled: enabled,
           obscureText: obscureText,
@@ -292,6 +314,7 @@ class LabeledTextField extends StatelessWidget {
           maxLines: maxLines,
           onChanged: onChanged,
           onFieldSubmitted: onSubmitted,
+          inputFormatters: inputFormatters,
         ),
       ],
     );
@@ -327,6 +350,9 @@ class LabeledDropdown<T> extends StatelessWidget {
   /// Error text to display.
   final String? errorText;
 
+  /// Compact layout with smaller text and tighter padding.
+  final bool dense;
+
   const LabeledDropdown({
     super.key,
     required this.label,
@@ -338,40 +364,54 @@ class LabeledDropdown<T> extends StatelessWidget {
     this.hint,
     this.helperText,
     this.errorText,
+    this.dense = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final labelStyle = dense
+        ? Theme.of(context).textTheme.labelMedium?.copyWith(
+              fontWeight: FontWeight.w500,
+            )
+        : Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w500,
+            );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Text(
-              label,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
-            ),
+            Text(label, style: labelStyle),
             if (required)
               Text(
                 ' *',
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.error,
                   fontWeight: FontWeight.bold,
+                  fontSize: dense ? 12 : null,
                 ),
               ),
           ],
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: dense ? 4 : 8),
         DropdownButtonFormField<T>(
           initialValue: value,
           items: items,
           onChanged: enabled ? onChanged : null,
+          isDense: dense,
+          style: dense ? Theme.of(context).textTheme.bodyMedium : null,
           decoration: InputDecoration(
             hintText: hint,
             helperText: helperText,
             errorText: errorText,
+            isDense: dense,
+            contentPadding: dense
+                ? const EdgeInsets.symmetric(horizontal: 12, vertical: 10)
+                : null,
+            helperStyle: dense
+                ? Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11)
+                : null,
           ),
         ),
       ],
@@ -433,8 +473,8 @@ class WizardProgressIndicator extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 32,
-                  height: 32,
+                  width: 24,
+                  height: 24,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: isCompleted || isCurrent
@@ -448,12 +488,13 @@ class WizardProgressIndicator extends StatelessWidget {
                     child: isCompleted
                         ? Icon(
                             Icons.check,
-                            size: 16,
+                            size: 14,
                             color: colorScheme.onPrimary,
                           )
                         : Text(
                             '${stepIndex + 1}',
                             style: TextStyle(
+                              fontSize: 12,
                               color: isCurrent
                                   ? colorScheme.onPrimary
                                   : colorScheme.onSurfaceVariant,

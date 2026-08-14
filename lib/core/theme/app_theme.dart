@@ -95,18 +95,21 @@ abstract final class AppTheme {
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: colorScheme.error, width: 2),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         // Hint text styling - muted appearance for placeholder/example text
         // Uses lower opacity and italic style to clearly differentiate from entered text
         hintStyle: TextStyle(
           color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
           fontWeight: FontWeight.w400,
           fontStyle: FontStyle.italic,
+          fontSize: 13,
         ),
         // Label styling for floating labels
         labelStyle: TextStyle(
           color: colorScheme.onSurfaceVariant,
           fontWeight: FontWeight.w500,
+          fontSize: 13,
         ),
         floatingLabelStyle: TextStyle(
           color: colorScheme.primary,
@@ -115,13 +118,13 @@ abstract final class AppTheme {
         // Helper text styling - slightly muted but readable
         helperStyle: TextStyle(
           color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
-          fontSize: 12,
+          fontSize: 11,
         ),
         // Error text styling - prominent for visibility
         errorStyle: TextStyle(
           color: colorScheme.error,
           fontWeight: FontWeight.w500,
-          fontSize: 12,
+          fontSize: 11,
         ),
         // Prefix/suffix icon styling
         prefixIconColor: colorScheme.onSurfaceVariant,
@@ -140,7 +143,8 @@ abstract final class AppTheme {
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           // Consistent hint styling in dropdowns
           hintStyle: TextStyle(
             color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
@@ -257,18 +261,21 @@ abstract final class AppTheme {
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: colorScheme.error, width: 2),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         // Hint text styling - muted appearance for placeholder/example text
         // Uses lower opacity and italic style to clearly differentiate from entered text
         hintStyle: TextStyle(
           color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
           fontWeight: FontWeight.w400,
           fontStyle: FontStyle.italic,
+          fontSize: 13,
         ),
         // Label styling for floating labels
         labelStyle: TextStyle(
           color: colorScheme.onSurfaceVariant,
           fontWeight: FontWeight.w500,
+          fontSize: 13,
         ),
         floatingLabelStyle: TextStyle(
           color: colorScheme.primary,
@@ -277,13 +284,13 @@ abstract final class AppTheme {
         // Helper text styling - slightly muted but readable
         helperStyle: TextStyle(
           color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
-          fontSize: 12,
+          fontSize: 11,
         ),
         // Error text styling - prominent for visibility
         errorStyle: TextStyle(
           color: colorScheme.error,
           fontWeight: FontWeight.w500,
-          fontSize: 12,
+          fontSize: 11,
         ),
         // Prefix/suffix icon styling
         prefixIconColor: colorScheme.onSurfaceVariant,
@@ -302,7 +309,8 @@ abstract final class AppTheme {
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           // Consistent hint styling in dropdowns
           hintStyle: TextStyle(
             color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
