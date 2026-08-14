@@ -131,18 +131,27 @@ class _StepContent extends ConsumerWidget {
 
     switch (state.currentStep) {
       case WizardStep.parameters:
+        return WallForm(
+          input: state.input,
+          onHeightChanged: notifier.updateHeight,
+          onMaterialChanged: notifier.updateMaterial,
+          onSurchargeChanged: notifier.updateSurcharge,
+          onOptimizationChanged: notifier.updateOptimizationParameter,
+          onSoilStiffnessChanged: notifier.updateSoilStiffness,
+          onToppingChanged: notifier.updateTopping,
+          onHasSlabChanged: notifier.updateHasSlab,
+        );
+
+      case WizardStep.customerInfo:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            WallForm(
-              input: state.input,
-              onHeightChanged: notifier.updateHeight,
-              onMaterialChanged: notifier.updateMaterial,
-              onSurchargeChanged: notifier.updateSurcharge,
-              onOptimizationChanged: notifier.updateOptimizationParameter,
-              onSoilStiffnessChanged: notifier.updateSoilStiffness,
-              onToppingChanged: notifier.updateTopping,
-              onHasSlabChanged: notifier.updateHasSlab,
+            CustomerForm(
+              customerInfo: state.input.customerInfo,
+              siteAddress: state.input.siteAddress,
+              onNameChanged: notifier.updateCustomerName,
+              onEmailChanged: notifier.updateCustomerEmail,
+              onPhoneChanged: notifier.updateCustomerPhone,
             ),
             const SizedBox(height: 24),
             AddressForm(
@@ -155,15 +164,6 @@ class _StepContent extends ConsumerWidget {
               onZipCodeChanged: notifier.updateSiteZipCode,
             ),
           ],
-        );
-
-      case WizardStep.customerInfo:
-        return CustomerForm(
-          customerInfo: state.input.customerInfo,
-          siteAddress: state.input.siteAddress,
-          onNameChanged: notifier.updateCustomerName,
-          onEmailChanged: notifier.updateCustomerEmail,
-          onPhoneChanged: notifier.updateCustomerPhone,
         );
 
       case WizardStep.payment:
@@ -537,7 +537,9 @@ class _NavigationButtons extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notifier = ref.read(wallInputProvider.notifier);
-    final canPreview = state.input.hasValidWallParameters &&
+    final showPreview = state.currentStep == WizardStep.parameters;
+    final canPreview = showPreview &&
+        state.input.hasValidWallParameters &&
         !state.isSubmitting &&
         !state.isGeneratingPreview;
 
@@ -546,6 +548,22 @@ class _NavigationButtons extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (showPreview) ...[
+            OutlinedButton.icon(
+              onPressed: canPreview
+                  ? () => _onViewPreview(context, ref)
+                  : null,
+              icon: state.isGeneratingPreview
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.visibility),
+              label: const Text('View Preview'),
+            ),
+            const SizedBox(height: 12),
+          ],
           Row(
             children: [
               if (state.canGoBack)
@@ -573,20 +591,6 @@ class _NavigationButtons extends ConsumerWidget {
                   label: const Text('Done'),
                 ),
             ],
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: canPreview
-                ? () => _onViewPreview(context, ref)
-                : null,
-            icon: state.isGeneratingPreview
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.visibility),
-            label: const Text('View Preview'),
           ),
         ],
       ),

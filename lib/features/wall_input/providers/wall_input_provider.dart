@@ -98,9 +98,9 @@ class WallInputState {
   bool get canProceed {
     switch (currentStep) {
       case WizardStep.parameters:
-        return input.hasValidWallParameters && input.hasValidSiteAddress;
+        return input.hasValidWallParameters;
       case WizardStep.customerInfo:
-        return input.hasValidCustomerInfo;
+        return input.hasValidCustomerInfo && input.hasValidSiteAddress;
       case WizardStep.payment:
         return lastResponse?.success == true;
       case WizardStep.delivery:
