@@ -439,7 +439,7 @@ class StripeService {
         paymentSheetParameters: SetupPaymentSheetParameters(
           paymentIntentClientSecret: paymentIntent.clientSecret,
           merchantDisplayName: StripeConstants.merchantDisplayName,
-          style: ThemeMode.system,
+          style: ThemeMode.light,
           appearance: const PaymentSheetAppearance(
             colors: PaymentSheetAppearanceColors(
               primary: Color(0xFF1976D2),

@@ -36,8 +36,7 @@ class RetainingWallApp extends StatelessWidget {
       title: 'Retaining Wall Designer',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
+      themeMode: ThemeMode.light,
       routerConfig: appRouter,
     );
   }

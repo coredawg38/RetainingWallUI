@@ -1,7 +1,7 @@
 /// Wall Parameters Form
 ///
 /// Form widget for entering retaining wall design parameters.
-/// Includes height slider, material dropdown, and other configuration options.
+/// Includes height, material, and other configuration options.
 ///
 /// Usage:
 /// ```dart
@@ -70,12 +70,7 @@ class WallForm extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SectionHeader(
-          title: 'Wall Dimensions',
-          subtitle: 'Set the height and toe length',
-        ),
-        const SizedBox(height: 8),
-        _HeightSlider(
+        _HeightInput(
           value: input.height,
           onChanged: enabled ? onHeightChanged : null,
         ),
@@ -84,14 +79,7 @@ class WallForm extends StatelessWidget {
           value: input.toe,
           onChanged: enabled ? onToeChanged : null,
         ),
-        const SizedBox(height: 24),
-        const Divider(),
         const SizedBox(height: 16),
-        const SectionHeader(
-          title: 'Material & Construction',
-          subtitle: 'Choose wall material and options',
-        ),
-        const SizedBox(height: 8),
         _MaterialDropdown(
           value: input.material,
           onChanged: enabled ? onMaterialChanged : null,
@@ -101,14 +89,7 @@ class WallForm extends StatelessWidget {
           value: input.hasSlab,
           onChanged: enabled ? onHasSlabChanged : null,
         ),
-        const SizedBox(height: 24),
-        const Divider(),
         const SizedBox(height: 16),
-        const SectionHeader(
-          title: 'Site Conditions',
-          subtitle: 'Specify terrain and soil characteristics',
-        ),
-        const SizedBox(height: 8),
         _SurchargeDropdown(
           value: input.surcharge,
           onChanged: enabled ? onSurchargeChanged : null,
@@ -123,14 +104,7 @@ class WallForm extends StatelessWidget {
           value: input.topping,
           onChanged: enabled ? onToppingChanged : null,
         ),
-        const SizedBox(height: 24),
-        const Divider(),
         const SizedBox(height: 16),
-        const SectionHeader(
-          title: 'Design Optimization',
-          subtitle: 'Choose what to optimize for',
-        ),
-        const SizedBox(height: 8),
         _OptimizationDropdown(
           value: input.optimizationParameter,
           onChanged: enabled ? onOptimizationChanged : null,
@@ -140,87 +114,64 @@ class WallForm extends StatelessWidget {
   }
 }
 
-/// Height slider with value display.
-class _HeightSlider extends StatelessWidget {
+/// Wall height input field.
+class _HeightInput extends StatefulWidget {
   final double value;
   final ValueChanged<double>? onChanged;
 
-  const _HeightSlider({
+  const _HeightInput({
     required this.value,
     this.onChanged,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final heightFeet = value / 12;
+  State<_HeightInput> createState() => _HeightInputState();
+}
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Wall Height',
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    '${value.toStringAsFixed(0)}" (${heightFeet.toStringAsFixed(1)} ft)',
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: colorScheme.onPrimaryContainer,
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Slider(
-              value: value,
-              min: WallConstraints.minHeight,
-              max: WallConstraints.maxHeight,
-              divisions: ((WallConstraints.maxHeight - WallConstraints.minHeight) ~/ 6),
-              label: '${value.toStringAsFixed(0)}"',
-              onChanged: onChanged,
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '${WallConstraints.minHeight.toInt()}" (2 ft)',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w500,
-                        ),
-                  ),
-                  Text(
-                    '${WallConstraints.maxHeight.toInt()}" (12 ft)',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w500,
-                        ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+class _HeightInputState extends State<_HeightInput> {
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value.toStringAsFixed(0));
+  }
+
+  @override
+  void didUpdateWidget(_HeightInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value) {
+      final newText = widget.value.toStringAsFixed(0);
+      if (_controller.text != newText) {
+        _controller.text = newText;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LabeledTextField(
+      label: 'Wall Height (inches)',
+      controller: _controller,
+      keyboardType: TextInputType.number,
+      helperText:
+          '${WallConstraints.minHeight.toInt()}-${WallConstraints.maxHeight.toInt()} inches',
+      prefixIcon: Icons.height,
+      onChanged: (value) {
+        final doubleValue = double.tryParse(value);
+        if (doubleValue != null && widget.onChanged != null) {
+          widget.onChanged!(doubleValue);
+        }
+      },
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly,
+      ],
     );
   }
 }
