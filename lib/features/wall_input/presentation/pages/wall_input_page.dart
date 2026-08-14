@@ -153,7 +153,7 @@ class _StepContent extends ConsumerWidget {
               onEmailChanged: notifier.updateCustomerEmail,
               onPhoneChanged: notifier.updateCustomerPhone,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             AddressForm(
               title: 'Site Address',
               subtitle: 'Where the wall will be built',

@@ -284,7 +284,7 @@ class LabeledTextField extends StatelessWidget {
               ),
           ],
         ),
-        SizedBox(height: dense ? 4 : 8),
+        SizedBox(height: dense ? 2 : 8),
         TextFormField(
           controller: controller,
           initialValue: controller == null ? initialValue : null,
@@ -295,7 +295,7 @@ class LabeledTextField extends StatelessWidget {
             errorText: errorText,
             isDense: dense,
             contentPadding: dense
-                ? const EdgeInsets.symmetric(horizontal: 12, vertical: 10)
+                ? const EdgeInsets.symmetric(horizontal: 10, vertical: 8)
                 : null,
             prefixIcon: prefixIcon != null
                 ? Icon(prefixIcon, size: dense ? 18 : 24)
@@ -394,7 +394,7 @@ class LabeledDropdown<T> extends StatelessWidget {
               ),
           ],
         ),
-        SizedBox(height: dense ? 4 : 8),
+        SizedBox(height: dense ? 2 : 8),
         DropdownButtonFormField<T>(
           initialValue: value,
           items: items,
@@ -407,7 +407,7 @@ class LabeledDropdown<T> extends StatelessWidget {
             errorText: errorText,
             isDense: dense,
             contentPadding: dense
-                ? const EdgeInsets.symmetric(horizontal: 12, vertical: 10)
+                ? const EdgeInsets.symmetric(horizontal: 10, vertical: 8)
                 : null,
             helperStyle: dense
                 ? Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11)

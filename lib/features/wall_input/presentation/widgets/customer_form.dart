@@ -99,16 +99,16 @@ class _CustomerFormState extends State<CustomerForm> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SectionHeader(
-          title: 'Contact Information',
-          subtitle: 'Details for document delivery',
+        Text(
+          'Contact Information',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         LabeledTextField(
           label: 'Full Name',
           controller: _nameController,
@@ -116,10 +116,9 @@ class _CustomerFormState extends State<CustomerForm> {
           required: true,
           enabled: widget.enabled,
           dense: true,
-          prefixIcon: Icons.person,
           onChanged: widget.onNameChanged,
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 6),
         LabeledTextField(
           label: 'Email Address',
           controller: _emailController,
@@ -127,11 +126,10 @@ class _CustomerFormState extends State<CustomerForm> {
           required: true,
           enabled: widget.enabled,
           dense: true,
-          prefixIcon: Icons.email,
           keyboardType: TextInputType.emailAddress,
           onChanged: widget.onEmailChanged,
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 6),
         LabeledTextField(
           label: 'Phone Number',
           controller: _phoneController,
@@ -139,38 +137,11 @@ class _CustomerFormState extends State<CustomerForm> {
           required: true,
           enabled: widget.enabled,
           dense: true,
-          prefixIcon: Icons.phone,
           keyboardType: TextInputType.phone,
           inputFormatters: [
             _PhoneInputFormatter(),
           ],
           onChanged: widget.onPhoneChanged,
-        ),
-        const SizedBox(height: 12),
-        // Delivery info card
-        Card(
-          color: colorScheme.primaryContainer.withValues(alpha: 0.3),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.email_outlined,
-                  size: 20,
-                  color: colorScheme.primary,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Documents download immediately and are emailed to you.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                  ),
-                ),
-              ],
-            ),
-          ),
         ),
       ],
     );

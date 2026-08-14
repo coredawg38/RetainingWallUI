@@ -121,11 +121,22 @@ class _AddressFormState extends State<AddressForm> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SectionHeader(
-          title: widget.title,
-          subtitle: widget.subtitle,
+        Text(
+          widget.title,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
         ),
-        const SizedBox(height: 8),
+        if (widget.subtitle != null) ...[
+          const SizedBox(height: 2),
+          Text(
+            widget.subtitle!,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+        ],
+        const SizedBox(height: 6),
         LabeledTextField(
           label: 'Street Address',
           controller: _streetController,
@@ -133,60 +144,43 @@ class _AddressFormState extends State<AddressForm> {
           required: widget.required,
           enabled: widget.enabled,
           dense: true,
-          prefixIcon: Icons.location_on,
           onChanged: widget.onStreetChanged,
         ),
-        const SizedBox(height: 10),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              flex: 3,
-              child: LabeledTextField(
-                label: 'City',
-                controller: _cityController,
-                hint: 'City',
-                required: widget.required,
-                enabled: widget.enabled,
-                dense: true,
-                onChanged: widget.onCityChanged,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              flex: 2,
-              child: _StateDropdown(
-                value: widget.address.state.isNotEmpty
-                    ? widget.address.state
-                    : null,
-                onChanged: widget.enabled ? widget.onStateChanged : null,
-                required: widget.required,
-              ),
-            ),
-          ],
+        const SizedBox(height: 6),
+        LabeledTextField(
+          label: 'City',
+          controller: _cityController,
+          hint: 'City',
+          required: widget.required,
+          enabled: widget.enabled,
+          dense: true,
+          onChanged: widget.onCityChanged,
         ),
-        const SizedBox(height: 10),
-        SizedBox(
-          width: 140,
-          child: LabeledTextField(
-            label: 'ZIP Code',
-            controller: _zipController,
-            hint: '12345',
-            required: widget.required,
-            enabled: widget.enabled,
-            dense: true,
-            keyboardType: TextInputType.number,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(5),
-            ],
-            onChanged: (value) {
-              final intValue = int.tryParse(value);
-              if (intValue != null && widget.onZipCodeChanged != null) {
-                widget.onZipCodeChanged!(intValue);
-              }
-            },
-          ),
+        const SizedBox(height: 6),
+        _StateDropdown(
+          value: widget.address.state.isNotEmpty ? widget.address.state : null,
+          onChanged: widget.enabled ? widget.onStateChanged : null,
+          required: widget.required,
+        ),
+        const SizedBox(height: 6),
+        LabeledTextField(
+          label: 'ZIP Code',
+          controller: _zipController,
+          hint: '12345',
+          required: widget.required,
+          enabled: widget.enabled,
+          dense: true,
+          keyboardType: TextInputType.number,
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(5),
+          ],
+          onChanged: (value) {
+            final intValue = int.tryParse(value);
+            if (intValue != null && widget.onZipCodeChanged != null) {
+              widget.onZipCodeChanged!(intValue);
+            }
+          },
         ),
       ],
     );

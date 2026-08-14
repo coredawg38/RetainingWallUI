@@ -63,75 +63,46 @@ class WallForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final twoCol = constraints.maxWidth >= 520;
-        const gap = 10.0;
+    const gap = 8.0;
 
-        Widget pair(Widget a, Widget b) {
-          if (!twoCol) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                a,
-                const SizedBox(height: gap),
-                b,
-              ],
-            );
-          }
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: a),
-              const SizedBox(width: gap),
-              Expanded(child: b),
-            ],
-          );
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            pair(
-              _HeightInput(
-                value: input.height,
-                onChanged: enabled ? onHeightChanged : null,
-              ),
-              _MaterialDropdown(
-                value: input.material,
-                onChanged: enabled ? onMaterialChanged : null,
-              ),
-            ),
-            const SizedBox(height: gap),
-            _SlabSwitch(
-              value: input.hasSlab,
-              onChanged: enabled ? onHasSlabChanged : null,
-            ),
-            const SizedBox(height: gap),
-            pair(
-              _SurchargeDropdown(
-                value: input.surcharge,
-                onChanged: enabled ? onSurchargeChanged : null,
-              ),
-              _SoilStiffnessDropdown(
-                value: input.soilStiffness,
-                onChanged: enabled ? onSoilStiffnessChanged : null,
-              ),
-            ),
-            const SizedBox(height: gap),
-            pair(
-              _ToppingInput(
-                value: input.topping,
-                onChanged: enabled ? onToppingChanged : null,
-              ),
-              _OptimizationDropdown(
-                value: input.optimizationParameter,
-                onChanged: enabled ? onOptimizationChanged : null,
-              ),
-            ),
-          ],
-        );
-      },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _HeightInput(
+          value: input.height,
+          onChanged: enabled ? onHeightChanged : null,
+        ),
+        const SizedBox(height: gap),
+        _MaterialDropdown(
+          value: input.material,
+          onChanged: enabled ? onMaterialChanged : null,
+        ),
+        const SizedBox(height: gap),
+        _SlabSwitch(
+          value: input.hasSlab,
+          onChanged: enabled ? onHasSlabChanged : null,
+        ),
+        const SizedBox(height: gap),
+        _SurchargeDropdown(
+          value: input.surcharge,
+          onChanged: enabled ? onSurchargeChanged : null,
+        ),
+        const SizedBox(height: gap),
+        _SoilStiffnessDropdown(
+          value: input.soilStiffness,
+          onChanged: enabled ? onSoilStiffnessChanged : null,
+        ),
+        const SizedBox(height: gap),
+        _ToppingInput(
+          value: input.topping,
+          onChanged: enabled ? onToppingChanged : null,
+        ),
+        const SizedBox(height: gap),
+        _OptimizationDropdown(
+          value: input.optimizationParameter,
+          onChanged: enabled ? onOptimizationChanged : null,
+        ),
+      ],
     );
   }
 }
