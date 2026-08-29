@@ -42,10 +42,14 @@ class WallInputPage extends ConsumerWidget {
         ),
       ),
       body: LoadingOverlay(
-        isLoading: state.isSubmitting || state.isGeneratingPreview,
+        isLoading: state.isSubmitting ||
+            state.isGeneratingPreview ||
+            state.isGeneratingTest,
         message: state.isGeneratingPreview
             ? 'Generating preview...'
-            : 'Processing your design...',
+            : state.isGeneratingTest
+                ? 'Generating test document...'
+                : 'Processing your design...',
         child: Align(
           alignment: Alignment.topCenter,
           child: ConstrainedBox(
@@ -538,10 +542,11 @@ class _NavigationButtons extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final notifier = ref.read(wallInputProvider.notifier);
     final showPreview = state.currentStep == WizardStep.parameters;
-    final canPreview = showPreview &&
+    final canGeneratePdf = showPreview &&
         state.input.hasValidWallParameters &&
         !state.isSubmitting &&
-        !state.isGeneratingPreview;
+        !state.isGeneratingPreview &&
+        !state.isGeneratingTest;
 
     final buttonStyle = OutlinedButton.styleFrom(
       visualDensity: VisualDensity.compact,
@@ -567,7 +572,7 @@ class _NavigationButtons extends ConsumerWidget {
             if (state.canGoBack) const SizedBox(width: 8),
             OutlinedButton.icon(
               style: buttonStyle,
-              onPressed: canPreview
+              onPressed: canGeneratePdf
                   ? () => _onViewPreview(context, ref)
                   : null,
               icon: state.isGeneratingPreview
@@ -578,6 +583,21 @@ class _NavigationButtons extends ConsumerWidget {
                     )
                   : const Icon(Icons.visibility, size: 18),
               label: const Text('Preview'),
+            ),
+            const SizedBox(width: 8),
+            OutlinedButton.icon(
+              style: buttonStyle,
+              onPressed: canGeneratePdf
+                  ? () => _onViewTest(context, ref)
+                  : null,
+              icon: state.isGeneratingTest
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.science, size: 18),
+              label: const Text('Test'),
             ),
           ],
           const Spacer(),
@@ -628,6 +648,35 @@ class _NavigationButtons extends ConsumerWidget {
           downloaded
               ? 'Preview PDF downloaded'
               : 'Preview generated, but download is only supported on web',
+        ),
+        backgroundColor: downloaded ? null : Colors.orange,
+      ),
+    );
+  }
+
+  Future<void> _onViewTest(BuildContext context, WidgetRef ref) async {
+    final bytes =
+        await ref.read(wallInputProvider.notifier).requestTestPdf();
+    if (!context.mounted) return;
+
+    if (bytes == null) {
+      final error = ref.read(wallInputProvider).errorMessage;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error ?? 'Failed to generate test PDF'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final downloaded = downloadPdfBytes(bytes, 'TestDrawing.pdf');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          downloaded
+              ? 'Test PDF downloaded'
+              : 'Test PDF generated, but download is only supported on web',
         ),
         backgroundColor: downloaded ? null : Colors.orange,
       ),

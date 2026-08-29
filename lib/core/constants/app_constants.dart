@@ -18,6 +18,9 @@ abstract final class ApiConstants {
   /// Preview PDF generation endpoint (no payment required).
   static const String previewEndpoint = '/api/v1/preview';
 
+  /// Test detailed PDF generation endpoint (no payment required).
+  static const String testEndpoint = '/api/v1/test';
+
   /// Status check endpoint (append /{requestId}).
   static const String statusEndpoint = '/api/v1/status';
 

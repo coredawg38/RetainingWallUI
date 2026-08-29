@@ -53,6 +53,9 @@ class WallInputState {
   /// Whether a preview PDF is being generated.
   final bool isGeneratingPreview;
 
+  /// Whether a test detailed PDF is being generated.
+  final bool isGeneratingTest;
+
   /// Last submission response, if any.
   final DesignResponse? lastResponse;
 
@@ -67,6 +70,7 @@ class WallInputState {
     this.currentStep = WizardStep.parameters,
     this.isSubmitting = false,
     this.isGeneratingPreview = false,
+    this.isGeneratingTest = false,
     this.lastResponse,
     this.validationErrors = const [],
     this.errorMessage,
@@ -78,6 +82,7 @@ class WallInputState {
     WizardStep? currentStep,
     bool? isSubmitting,
     bool? isGeneratingPreview,
+    bool? isGeneratingTest,
     DesignResponse? lastResponse,
     List<String>? validationErrors,
     String? errorMessage,
@@ -88,6 +93,7 @@ class WallInputState {
       isSubmitting: isSubmitting ?? this.isSubmitting,
       isGeneratingPreview:
           isGeneratingPreview ?? this.isGeneratingPreview,
+      isGeneratingTest: isGeneratingTest ?? this.isGeneratingTest,
       lastResponse: lastResponse ?? this.lastResponse,
       validationErrors: validationErrors ?? this.validationErrors,
       errorMessage: errorMessage,
@@ -371,6 +377,40 @@ class WallInputNotifier extends Notifier<WallInputState> {
       state = state.copyWith(
         isGeneratingPreview: false,
         errorMessage: 'Failed to generate preview: $e',
+      );
+      return null;
+    }
+  }
+
+  /// Requests a test detailed PDF from the server (no payment required).
+  ///
+  /// Returns the PDF bytes on success, or null on failure.
+  Future<List<int>?> requestTestPdf() async {
+    if (!state.input.hasValidWallParameters) {
+      state = state.copyWith(
+        errorMessage: 'Enter valid wall parameters before generating a test PDF.',
+      );
+      return null;
+    }
+
+    state = state.copyWith(
+      isGeneratingTest: true,
+      errorMessage: null,
+    );
+
+    try {
+      final result = await _apiClient.requestTestPdf(state.input.toJson());
+
+      state = state.copyWith(
+        isGeneratingTest: false,
+        errorMessage: result.errorMessage,
+      );
+
+      return result.bytes;
+    } catch (e) {
+      state = state.copyWith(
+        isGeneratingTest: false,
+        errorMessage: 'Failed to generate test PDF: $e',
       );
       return null;
     }

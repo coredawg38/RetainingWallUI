@@ -297,6 +297,52 @@ class ApiClient {
     }
   }
 
+  /// Requests a test detailed PDF from the server (no payment required).
+  ///
+  /// [wallInput] should be a JSON-serializable map matching the
+  /// RetainingWallInput schema. Customer info is optional.
+  ///
+  /// Returns the PDF bytes on success, or null on failure.
+  /// [errorMessage] is set when the request fails.
+  Future<({List<int>? bytes, String? errorMessage})> requestTestPdf(
+    Map<String, dynamic> wallInput,
+  ) async {
+    try {
+      final uri = Uri.parse('$baseUrl${ApiConstants.testEndpoint}');
+      final response = await _client
+          .post(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/pdf, application/json',
+            },
+            body: jsonEncode(wallInput),
+          )
+          .timeout(Duration(seconds: ApiConstants.timeoutSeconds * 2));
+
+      final contentType = response.headers['content-type'] ?? '';
+      if (response.statusCode == 200 && contentType.contains('application/pdf')) {
+        return (bytes: response.bodyBytes, errorMessage: null);
+      }
+
+      if (contentType.contains('application/json')) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        return (
+          bytes: null,
+          errorMessage: json['error'] as String? ??
+              'Server returned status ${response.statusCode}',
+        );
+      }
+
+      return (
+        bytes: null,
+        errorMessage: 'Server returned status ${response.statusCode}',
+      );
+    } catch (e) {
+      return (bytes: null, errorMessage: 'Failed to generate test PDF: $e');
+    }
+  }
+
   /// Submits a wall design to the server for processing.
   ///
   /// [wallInput] should be a JSON-serializable map matching the
