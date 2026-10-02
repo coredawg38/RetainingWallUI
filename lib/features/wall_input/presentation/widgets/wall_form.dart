@@ -24,7 +24,7 @@ import '../../data/models/retaining_wall_input.dart';
 /// Replace this copy with the final field explanations.
 abstract final class _ParameterHelp {
   static const height =
-      'The exposed height of the retaining wall, measured in inches.';
+      'The exposed height of the retaining wall, measured in inches (24–144).';
 
   static const material = 'The material used to build the wall.';
 
@@ -145,17 +145,20 @@ class _HeightInput extends StatefulWidget {
 
 class _HeightInputState extends State<_HeightInput> {
   late TextEditingController _controller;
+  late FocusNode _focusNode;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.value.toStringAsFixed(0));
+    _focusNode = FocusNode();
+    _focusNode.addListener(_onFocusChange);
   }
 
   @override
   void didUpdateWidget(_HeightInput oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.value != widget.value) {
+    if (oldWidget.value != widget.value && !_focusNode.hasFocus) {
       final newText = widget.value.toStringAsFixed(0);
       if (_controller.text != newText) {
         _controller.text = newText;
@@ -165,29 +168,84 @@ class _HeightInputState extends State<_HeightInput> {
 
   @override
   void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
     _controller.dispose();
     super.dispose();
   }
 
+  void _onFocusChange() {
+    if (!_focusNode.hasFocus) {
+      _clampAndCommit();
+    }
+  }
+
+  double _clampHeight(double value) {
+    return value.clamp(WallConstraints.minHeight, WallConstraints.maxHeight);
+  }
+
+  void _clampAndCommit() {
+    final parsed = double.tryParse(_controller.text);
+    final clamped = _clampHeight(parsed ?? WallConstraints.minHeight);
+    final text = clamped.toStringAsFixed(0);
+    if (_controller.text != text) {
+      _controller.text = text;
+    }
+    widget.onChanged?.call(clamped);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return LabeledTextField(
-      label: 'Height (${WallConstraints.minHeight.toInt()}-${WallConstraints.maxHeight.toInt()}") in)',
-      controller: _controller,
-      keyboardType: TextInputType.number,
-      dense: true,
-      infoText: _ParameterHelp.height,
-      prefixIcon: Icons.height,
-      onChanged: (value) {
-        final doubleValue = double.tryParse(value);
-        if (doubleValue != null && widget.onChanged != null) {
-          widget.onChanged!(doubleValue);
-        }
-      },
-      inputFormatters: [
-        FilteringTextInputFormatter.digitsOnly,
-      ],
+    return Focus(
+      focusNode: _focusNode,
+      child: LabeledTextField(
+        label: 'Height (${WallConstraints.minHeight.toInt()}-${WallConstraints.maxHeight.toInt()} in)',
+        controller: _controller,
+        keyboardType: TextInputType.number,
+        dense: true,
+        infoText: _ParameterHelp.height,
+        prefixIcon: Icons.height,
+        onChanged: (value) {
+          final doubleValue = double.tryParse(value);
+          if (doubleValue == null || widget.onChanged == null) return;
+          // Only push in-range values while typing; clamp on blur for lows.
+          if (doubleValue >= WallConstraints.minHeight &&
+              doubleValue <= WallConstraints.maxHeight) {
+            widget.onChanged!(doubleValue);
+          }
+        },
+        onSubmitted: (_) => _clampAndCommit(),
+        inputFormatters: const [
+          _HeightRangeFormatter(),
+        ],
+      ),
     );
+  }
+}
+
+/// Digits-only formatter that rejects values above [WallConstraints.maxHeight].
+///
+/// Values below the minimum are allowed while typing (e.g. "2" then "4" for 24)
+/// and are clamped when the field loses focus.
+class _HeightRangeFormatter extends TextInputFormatter {
+  const _HeightRangeFormatter();
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.isEmpty) {
+      return newValue;
+    }
+    if (!RegExp(r'^\d+$').hasMatch(newValue.text)) {
+      return oldValue;
+    }
+    final value = int.parse(newValue.text);
+    if (value > WallConstraints.maxHeight) {
+      return oldValue;
+    }
+    return newValue;
   }
 }
 

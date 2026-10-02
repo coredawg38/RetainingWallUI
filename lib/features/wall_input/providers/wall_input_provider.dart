@@ -136,8 +136,12 @@ class WallInputNotifier extends Notifier<WallInputState> {
 
   /// Updates the wall height.
   void updateHeight(double height) {
+    final clamped = height.clamp(
+      WallConstraints.minHeight,
+      WallConstraints.maxHeight,
+    );
     state = state.copyWith(
-      input: state.input.copyWith(height: height),
+      input: state.input.copyWith(height: clamped),
     );
   }
 
