@@ -542,11 +542,18 @@ class _NavigationButtons extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final notifier = ref.read(wallInputProvider.notifier);
     final showPreview = state.currentStep == WizardStep.parameters;
-    final canGeneratePdf = showPreview &&
+    final showTest = state.currentStep == WizardStep.customerInfo;
+    final isBusy = state.isSubmitting ||
+        state.isGeneratingPreview ||
+        state.isGeneratingTest;
+    final canGeneratePreview = showPreview &&
         state.input.hasValidWallParameters &&
-        !state.isSubmitting &&
-        !state.isGeneratingPreview &&
-        !state.isGeneratingTest;
+        !isBusy;
+    final canGenerateTest = showTest &&
+        state.input.hasValidWallParameters &&
+        state.input.hasValidCustomerInfo &&
+        state.input.hasValidSiteAddress &&
+        !isBusy;
 
     final buttonStyle = OutlinedButton.styleFrom(
       visualDensity: VisualDensity.compact,
@@ -572,7 +579,7 @@ class _NavigationButtons extends ConsumerWidget {
             if (state.canGoBack) const SizedBox(width: 8),
             OutlinedButton.icon(
               style: buttonStyle,
-              onPressed: canGeneratePdf
+              onPressed: canGeneratePreview
                   ? () => _onViewPreview(context, ref)
                   : null,
               icon: state.isGeneratingPreview
@@ -584,10 +591,12 @@ class _NavigationButtons extends ConsumerWidget {
                   : const Icon(Icons.visibility, size: 18),
               label: const Text('Preview'),
             ),
-            const SizedBox(width: 8),
+          ],
+          if (showTest) ...[
+            if (state.canGoBack) const SizedBox(width: 8),
             OutlinedButton.icon(
               style: buttonStyle,
-              onPressed: canGeneratePdf
+              onPressed: canGenerateTest
                   ? () => _onViewTest(context, ref)
                   : null,
               icon: state.isGeneratingTest

@@ -183,6 +183,105 @@ class SectionHeader extends StatelessWidget {
   }
 }
 
+/// Small info icon that shows a description box while the pointer hovers it.
+class FieldInfoIcon extends StatelessWidget {
+  /// Description shown in the hover box.
+  final String description;
+
+  const FieldInfoIcon({super.key, required this.description});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Tooltip(
+      message: description,
+      waitDuration: const Duration(milliseconds: 150),
+      preferBelow: true,
+      verticalOffset: 8,
+      margin: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      constraints: const BoxConstraints(maxWidth: 260),
+      mouseCursor: SystemMouseCursors.help,
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colorScheme.outlineVariant),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x33000000),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      textStyle: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: colorScheme.onSurface,
+            height: 1.4,
+          ),
+      child: Padding(
+        padding: const EdgeInsets.all(2),
+        child: Icon(
+          Icons.info_outline,
+          size: 16,
+          color: colorScheme.primary,
+        ),
+      ),
+    );
+  }
+}
+
+/// Label row for a form field, with an optional info icon on the right.
+class _FieldLabel extends StatelessWidget {
+  final String label;
+  final bool required;
+  final bool dense;
+  final String? infoText;
+
+  const _FieldLabel({
+    required this.label,
+    required this.required,
+    required this.dense,
+    this.infoText,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final labelStyle = dense
+        ? Theme.of(context).textTheme.labelMedium?.copyWith(
+              fontWeight: FontWeight.w500,
+            )
+        : Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w500,
+            );
+
+    return Row(
+      children: [
+        Expanded(
+          child: Text.rich(
+            TextSpan(
+              style: labelStyle,
+              children: [
+                TextSpan(text: label),
+                if (required)
+                  TextSpan(
+                    text: ' *',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                      fontWeight: FontWeight.bold,
+                      fontSize: dense ? 12 : null,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        if (infoText != null) FieldInfoIcon(description: infoText!),
+      ],
+    );
+  }
+}
+
 /// A labeled form field with optional validation.
 class LabeledTextField extends StatelessWidget {
   /// The field label.
@@ -236,6 +335,9 @@ class LabeledTextField extends StatelessWidget {
   /// Compact layout with smaller text and tighter padding.
   final bool dense;
 
+  /// Description shown when hovering the info icon. Hidden when null.
+  final String? infoText;
+
   const LabeledTextField({
     super.key,
     required this.label,
@@ -255,34 +357,19 @@ class LabeledTextField extends StatelessWidget {
     this.prefixIcon,
     this.suffix,
     this.dense = false,
+    this.infoText,
   });
 
   @override
   Widget build(BuildContext context) {
-    final labelStyle = dense
-        ? Theme.of(context).textTheme.labelMedium?.copyWith(
-              fontWeight: FontWeight.w500,
-            )
-        : Theme.of(context).textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w500,
-            );
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Text(label, style: labelStyle),
-            if (required)
-              Text(
-                ' *',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.error,
-                  fontWeight: FontWeight.bold,
-                  fontSize: dense ? 12 : null,
-                ),
-              ),
-          ],
+        _FieldLabel(
+          label: label,
+          required: required,
+          dense: dense,
+          infoText: infoText,
         ),
         SizedBox(height: dense ? 2 : 8),
         TextFormField(
@@ -353,6 +440,9 @@ class LabeledDropdown<T> extends StatelessWidget {
   /// Compact layout with smaller text and tighter padding.
   final bool dense;
 
+  /// Description shown when hovering the info icon. Hidden when null.
+  final String? infoText;
+
   const LabeledDropdown({
     super.key,
     required this.label,
@@ -365,34 +455,19 @@ class LabeledDropdown<T> extends StatelessWidget {
     this.helperText,
     this.errorText,
     this.dense = false,
+    this.infoText,
   });
 
   @override
   Widget build(BuildContext context) {
-    final labelStyle = dense
-        ? Theme.of(context).textTheme.labelMedium?.copyWith(
-              fontWeight: FontWeight.w500,
-            )
-        : Theme.of(context).textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w500,
-            );
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Text(label, style: labelStyle),
-            if (required)
-              Text(
-                ' *',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.error,
-                  fontWeight: FontWeight.bold,
-                  fontSize: dense ? 12 : null,
-                ),
-              ),
-          ],
+        _FieldLabel(
+          label: label,
+          required: required,
+          dense: dense,
+          infoText: infoText,
         ),
         SizedBox(height: dense ? 2 : 8),
         DropdownButtonFormField<T>(

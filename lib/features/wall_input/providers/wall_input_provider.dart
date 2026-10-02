@@ -393,6 +393,14 @@ class WallInputNotifier extends Notifier<WallInputState> {
       return null;
     }
 
+    if (!state.input.hasValidCustomerInfo || !state.input.hasValidSiteAddress) {
+      state = state.copyWith(
+        errorMessage:
+            'Enter customer and site information before generating a test PDF.',
+      );
+      return null;
+    }
+
     state = state.copyWith(
       isGeneratingTest: true,
       errorMessage: null,

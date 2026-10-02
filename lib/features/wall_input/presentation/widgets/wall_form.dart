@@ -19,6 +19,28 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../shared/widgets/common_widgets.dart';
 import '../../data/models/retaining_wall_input.dart';
 
+/// Placeholder descriptions for the wall parameter fields.
+///
+/// Replace this copy with the final field explanations.
+abstract final class _ParameterHelp {
+  static const height =
+      'The exposed height of the retaining wall, measured in inches.';
+
+  static const material = 'The material used to build the wall.';
+
+  static const hasSlab = 'Whether a concrete slab is built at the top of the wall.';
+
+  static const surcharge =
+      'The slope or extra load on the ground above the wall.';
+
+  static const soilStiffness = 'How stiff the soil is at the site.';
+
+  static const topping =
+      'The depth of topsoil placed above the wall, in inches.';
+
+  static const optimization = 'Which part of the design the wall should minimize.';
+}
+
 /// Form for entering wall parameters.
 class WallForm extends StatelessWidget {
   /// Current input values.
@@ -154,6 +176,7 @@ class _HeightInputState extends State<_HeightInput> {
       controller: _controller,
       keyboardType: TextInputType.number,
       dense: true,
+      infoText: _ParameterHelp.height,
       prefixIcon: Icons.height,
       onChanged: (value) {
         final doubleValue = double.tryParse(value);
@@ -184,6 +207,7 @@ class _MaterialDropdown extends StatelessWidget {
       label: 'Material',
       value: value,
       dense: true,
+      infoText: _ParameterHelp.material,
       onChanged: onChanged != null
           ? (newValue) {
               if (newValue != null) onChanged!(newValue);
@@ -231,6 +255,8 @@ class _SlabSwitch extends StatelessWidget {
                   ),
             ),
           ),
+          const FieldInfoIcon(description: _ParameterHelp.hasSlab),
+          const SizedBox(width: 4),
           Transform.scale(
             scale: 0.85,
             child: Switch(
@@ -261,6 +287,7 @@ class _SurchargeDropdown extends StatelessWidget {
       label: 'Surcharge / Slope',
       value: value,
       dense: true,
+      infoText: _ParameterHelp.surcharge,
       onChanged: onChanged != null
           ? (newValue) {
               if (newValue != null) onChanged!(newValue);
@@ -292,6 +319,7 @@ class _SoilStiffnessDropdown extends StatelessWidget {
       label: 'Soil Stiffness',
       value: value,
       dense: true,
+      infoText: _ParameterHelp.soilStiffness,
       onChanged: onChanged != null
           ? (newValue) {
               if (newValue != null) onChanged!(newValue);
@@ -354,6 +382,7 @@ class _ToppingInputState extends State<_ToppingInput> {
       controller: _controller,
       keyboardType: TextInputType.number,
       dense: true,
+      infoText: _ParameterHelp.topping,
       prefixIcon: Icons.grass,
       onChanged: (value) {
         final intValue = int.tryParse(value);
@@ -384,6 +413,7 @@ class _OptimizationDropdown extends StatelessWidget {
       label: 'Optimize For',
       value: value,
       dense: true,
+      infoText: _ParameterHelp.optimization,
       onChanged: onChanged != null
           ? (newValue) {
               if (newValue != null) onChanged!(newValue);
