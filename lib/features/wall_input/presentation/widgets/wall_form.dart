@@ -12,6 +12,8 @@
 /// ```
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -146,6 +148,12 @@ class _HeightInput extends StatefulWidget {
 class _HeightInputState extends State<_HeightInput> {
   late TextEditingController _controller;
   late FocusNode _focusNode;
+  final LayerLink _layerLink = LayerLink();
+  final OverlayPortalController _popupController = OverlayPortalController();
+  Timer? _popupTimer;
+
+  static String get _boundsMessage =>
+      'Height must be between ${WallConstraints.minHeight.toInt()} and ${WallConstraints.maxHeight.toInt()} inches.';
 
   @override
   void initState() {
@@ -168,6 +176,7 @@ class _HeightInputState extends State<_HeightInput> {
 
   @override
   void dispose() {
+    _popupTimer?.cancel();
     _focusNode.removeListener(_onFocusChange);
     _focusNode.dispose();
     _controller.dispose();
@@ -184,40 +193,92 @@ class _HeightInputState extends State<_HeightInput> {
     return value.clamp(WallConstraints.minHeight, WallConstraints.maxHeight);
   }
 
+  void _showBoundsPopup() {
+    _popupTimer?.cancel();
+    _popupController.show();
+    _popupTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) {
+        _popupController.hide();
+      }
+    });
+  }
+
   void _clampAndCommit() {
     final parsed = double.tryParse(_controller.text);
     final clamped = _clampHeight(parsed ?? WallConstraints.minHeight);
     final text = clamped.toStringAsFixed(0);
+    final wasOutOfRange =
+        parsed == null || parsed < WallConstraints.minHeight || parsed > WallConstraints.maxHeight;
     if (_controller.text != text) {
       _controller.text = text;
+    }
+    if (wasOutOfRange) {
+      _showBoundsPopup();
     }
     widget.onChanged?.call(clamped);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Focus(
-      focusNode: _focusNode,
-      child: LabeledTextField(
-        label: 'Height (${WallConstraints.minHeight.toInt()}-${WallConstraints.maxHeight.toInt()} in)',
-        controller: _controller,
-        keyboardType: TextInputType.number,
-        dense: true,
-        infoText: _ParameterHelp.height,
-        prefixIcon: Icons.height,
-        onChanged: (value) {
-          final doubleValue = double.tryParse(value);
-          if (doubleValue == null || widget.onChanged == null) return;
-          // Only push in-range values while typing; clamp on blur for lows.
-          if (doubleValue >= WallConstraints.minHeight &&
-              doubleValue <= WallConstraints.maxHeight) {
-            widget.onChanged!(doubleValue);
-          }
-        },
-        onSubmitted: (_) => _clampAndCommit(),
-        inputFormatters: const [
-          _HeightRangeFormatter(),
-        ],
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return OverlayPortal(
+      controller: _popupController,
+      overlayChildBuilder: (context) {
+        return UnconstrainedBox(
+          alignment: Alignment.topLeft,
+          child: CompositedTransformFollower(
+            link: _layerLink,
+            showWhenUnlinked: false,
+            targetAnchor: Alignment.bottomLeft,
+            followerAnchor: Alignment.topLeft,
+            offset: const Offset(0, 6),
+            child: Material(
+              elevation: 4,
+              borderRadius: BorderRadius.circular(8),
+              color: colorScheme.inverseSurface,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 280),
+                  child: Text(
+                    _boundsMessage,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onInverseSurface,
+                        ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+      child: CompositedTransformTarget(
+        link: _layerLink,
+        child: Focus(
+          focusNode: _focusNode,
+          child: LabeledTextField(
+            label: 'Height (${WallConstraints.minHeight.toInt()}-${WallConstraints.maxHeight.toInt()} in)',
+            controller: _controller,
+            keyboardType: TextInputType.number,
+            dense: true,
+            infoText: _ParameterHelp.height,
+            prefixIcon: Icons.height,
+            onChanged: (value) {
+              final doubleValue = double.tryParse(value);
+              if (doubleValue == null || widget.onChanged == null) return;
+              // Only push in-range values while typing; clamp on blur for lows.
+              if (doubleValue >= WallConstraints.minHeight &&
+                  doubleValue <= WallConstraints.maxHeight) {
+                widget.onChanged!(doubleValue);
+              }
+            },
+            onSubmitted: (_) => _clampAndCommit(),
+            inputFormatters: [
+              _HeightRangeFormatter(onRejected: _showBoundsPopup),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -228,7 +289,9 @@ class _HeightInputState extends State<_HeightInput> {
 /// Values below the minimum are allowed while typing (e.g. "2" then "4" for 24)
 /// and are clamped when the field loses focus.
 class _HeightRangeFormatter extends TextInputFormatter {
-  const _HeightRangeFormatter();
+  const _HeightRangeFormatter({this.onRejected});
+
+  final VoidCallback? onRejected;
 
   @override
   TextEditingValue formatEditUpdate(
@@ -243,6 +306,7 @@ class _HeightRangeFormatter extends TextInputFormatter {
     }
     final value = int.parse(newValue.text);
     if (value > WallConstraints.maxHeight) {
+      onRejected?.call();
       return oldValue;
     }
     return newValue;
