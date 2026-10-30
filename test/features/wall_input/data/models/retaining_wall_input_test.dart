@@ -231,18 +231,15 @@ void main() {
       expect(input2.heightInFeet, equals(4.0));
     });
 
-    test('price calculates based on height tiers', () {
-      // Small wall (under 4 feet = 48 inches)
+    test('price is flat regardless of height', () {
       const smallWall = RetainingWallInput(height: 36);
-      expect(smallWall.price, equals(PricingTiers.smallWallPrice));
+      expect(smallWall.price, equals(PricingTiers.price));
 
-      // Medium wall (4-8 feet = 48-96 inches)
       const mediumWall = RetainingWallInput(height: 72);
-      expect(mediumWall.price, equals(PricingTiers.mediumWallPrice));
+      expect(mediumWall.price, equals(PricingTiers.price));
 
-      // Large wall (over 8 feet = over 96 inches)
       const largeWall = RetainingWallInput(height: 120);
-      expect(largeWall.price, equals(PricingTiers.largeWallPrice));
+      expect(largeWall.price, equals(PricingTiers.price));
     });
 
     test('hasValidWallParameters validates constraints', () {

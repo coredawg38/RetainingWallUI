@@ -155,48 +155,17 @@ abstract final class SoilStiffnessType {
   };
 }
 
-/// Pricing tiers for wall designs.
-///
-/// Pricing is based on wall height in feet.
+/// Flat pricing for wall designs.
 abstract final class PricingTiers {
-  /// Maximum height (in feet) for small wall tier.
-  static const double smallWallMaxFeet = 4.0;
+  /// Single flat price for all wall designs.
+  static const double price = 500.0;
 
-  /// Maximum height (in feet) for medium wall tier.
-  static const double mediumWallMaxFeet = 8.0;
+  /// Returns the flat design price (height is unused; kept for call-site compatibility).
+  static double calculatePrice(double heightInches) => price;
 
-  /// Price for small walls (under 4 feet).
-  static const double smallWallPrice = 49.99;
-
-  /// Price for medium walls (4-8 feet).
-  static const double mediumWallPrice = 99.99;
-
-  /// Price for large walls (over 8 feet).
-  static const double largeWallPrice = 149.99;
-
-  /// Calculates the price based on wall height in inches.
-  static double calculatePrice(double heightInches) {
-    final heightFeet = heightInches / 12.0;
-    if (heightFeet <= smallWallMaxFeet) {
-      return smallWallPrice;
-    } else if (heightFeet <= mediumWallMaxFeet) {
-      return mediumWallPrice;
-    } else {
-      return largeWallPrice;
-    }
-  }
-
-  /// Returns a description of the pricing tier for a given height.
-  static String getTierDescription(double heightInches) {
-    final heightFeet = heightInches / 12.0;
-    if (heightFeet <= smallWallMaxFeet) {
-      return 'Small Wall (up to ${smallWallMaxFeet.toInt()} ft)';
-    } else if (heightFeet <= mediumWallMaxFeet) {
-      return 'Medium Wall (${smallWallMaxFeet.toInt()}-${mediumWallMaxFeet.toInt()} ft)';
-    } else {
-      return 'Large Wall (over ${mediumWallMaxFeet.toInt()} ft)';
-    }
-  }
+  /// Returns a description for the order summary.
+  static String getTierDescription(double heightInches) =>
+      'Retaining Wall Design';
 }
 
 /// Design wizard step identifiers.

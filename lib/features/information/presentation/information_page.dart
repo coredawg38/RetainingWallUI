@@ -258,76 +258,24 @@ class _PricingSection extends StatelessWidget {
       children: [
         const SectionHeader(
           title: 'Simple Pricing',
-          subtitle: 'Choose the tier that matches your wall height',
+          subtitle: 'One flat price for every wall design',
         ),
         const SizedBox(height: 16),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final isWide = constraints.maxWidth > 700;
-            final cards = [
-              _PricingTierCard(
-                tier: 'Small Wall',
-                price: PricingTiers.smallWallPrice,
-                heightRange: 'Up to ${PricingTiers.smallWallMaxFeet.toInt()} feet',
-                features: const [
-                  'Preview drawing',
-                  'Detailed construction drawing',
-                  'PDF download',
-                  'Email delivery',
-                ],
-              ),
-              _PricingTierCard(
-                tier: 'Medium Wall',
-                price: PricingTiers.mediumWallPrice,
-                heightRange:
-                    '${PricingTiers.smallWallMaxFeet.toInt()}-${PricingTiers.mediumWallMaxFeet.toInt()} feet',
-                features: const [
-                  'Preview drawing',
-                  'Detailed construction drawing',
-                  'Multi-section design',
-                  'PDF download',
-                  'Email delivery',
-                ],
-                isPopular: true,
-              ),
-              _PricingTierCard(
-                tier: 'Large Wall',
-                price: PricingTiers.largeWallPrice,
-                heightRange: 'Over ${PricingTiers.mediumWallMaxFeet.toInt()} feet',
-                features: const [
-                  'Preview drawing',
-                  'Detailed construction drawing',
-                  'Multi-section design',
-                  'Structural calculations',
-                  'PDF download',
-                  'Email delivery',
-                ],
-              ),
-            ];
-
-            if (isWide) {
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: cards
-                    .map((card) => Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: card,
-                          ),
-                        ))
-                    .toList(),
-              );
-            } else {
-              return Column(
-                children: cards
-                    .map((card) => Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: card,
-                        ))
-                    .toList(),
-              );
-            }
-          },
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: const _PricingTierCard(
+            tier: 'Retaining Wall Design',
+            price: PricingTiers.price,
+            heightRange: 'All wall heights',
+            features: [
+              'Preview drawing',
+              'Detailed construction drawing',
+              'Multi-section design',
+              'Structural calculations',
+              'PDF download',
+              'Email delivery',
+            ],
+          ),
         ),
       ],
     );
