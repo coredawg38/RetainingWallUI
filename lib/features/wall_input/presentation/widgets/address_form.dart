@@ -153,10 +153,29 @@ class _AddressFormState extends State<AddressForm> {
           onChanged: widget.onCityChanged,
         ),
         const SizedBox(height: 6),
-        _StateDropdown(
-          value: widget.address.state.isNotEmpty ? widget.address.state : null,
-          onChanged: widget.enabled ? widget.onStateChanged : null,
+        LabeledDropdown<String>(
+          label: 'State',
+          value: widget.address.state.isNotEmpty &&
+                  _usStates.contains(widget.address.state)
+              ? widget.address.state
+              : null,
           required: widget.required,
+          enabled: widget.enabled,
+          dense: true,
+          hint: 'Select',
+          onChanged: widget.enabled && widget.onStateChanged != null
+              ? (newValue) {
+                  if (newValue != null) {
+                    widget.onStateChanged!(newValue);
+                  }
+                }
+              : null,
+          items: _usStates
+              .map((state) => DropdownMenuItem<String>(
+                    value: state,
+                    child: Text(state),
+                  ))
+              .toList(),
         ),
         const SizedBox(height: 6),
         LabeledTextField(
@@ -177,131 +196,6 @@ class _AddressFormState extends State<AddressForm> {
               widget.onZipCodeChanged!(intValue);
             }
           },
-        ),
-      ],
-    );
-  }
-}
-
-/// State dropdown selector with keyboard filtering support.
-class _StateDropdown extends StatefulWidget {
-  final String? value;
-  final ValueChanged<String>? onChanged;
-  final bool required;
-
-  const _StateDropdown({
-    this.value,
-    this.onChanged,
-    this.required = true,
-  });
-
-  @override
-  State<_StateDropdown> createState() => _StateDropdownState();
-}
-
-class _StateDropdownState extends State<_StateDropdown> {
-  final TextEditingController _controller = TextEditingController();
-  final FocusNode _focusNode = FocusNode();
-  final MenuController _menuController = MenuController();
-
-  @override
-  void initState() {
-    super.initState();
-    _controller.text = widget.value ?? '';
-    _focusNode.addListener(_handleFocusChange);
-  }
-
-  @override
-  void didUpdateWidget(_StateDropdown oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.value != widget.value && _controller.text != widget.value) {
-      _controller.text = widget.value ?? '';
-    }
-  }
-
-  @override
-  void dispose() {
-    _focusNode.removeListener(_handleFocusChange);
-    _focusNode.dispose();
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _handleFocusChange() {
-    if (!_focusNode.hasFocus) {
-      // Close the dropdown menu when focus is lost
-      _menuController.close();
-
-      // Validate the typed text on focus out
-      final typedText = _controller.text.toUpperCase().trim();
-      if (_usStates.contains(typedText)) {
-        if (typedText != widget.value && widget.onChanged != null) {
-          widget.onChanged!(typedText);
-        }
-        _controller.text = typedText;
-      } else if (widget.value != null && widget.value!.isNotEmpty) {
-        // Revert to valid value if typed text is invalid
-        _controller.text = widget.value!;
-      } else {
-        // Clear invalid input
-        _controller.text = '';
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              'State',
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
-            ),
-            if (widget.required)
-              Text(
-                ' *',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.error,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        DropdownMenu<String>(
-          controller: _controller,
-          focusNode: _focusNode,
-          menuController: _menuController,
-          initialSelection: widget.value != null && _usStates.contains(widget.value) ? widget.value : null,
-          enableFilter: true,
-          enableSearch: true,
-          requestFocusOnTap: true,
-          hintText: 'Select',
-          expandedInsets: EdgeInsets.zero,
-          textStyle: Theme.of(context).textTheme.bodyMedium,
-          inputDecorationTheme: const InputDecorationTheme(
-            isDense: true,
-            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          ),
-          dropdownMenuEntries: _usStates
-              .map((state) => DropdownMenuEntry<String>(
-                    value: state,
-                    label: state,
-                  ))
-              .toList(),
-          onSelected: widget.onChanged != null
-              ? (newValue) {
-                  if (newValue != null) {
-                    widget.onChanged!(newValue);
-                  }
-                }
-              : null,
         ),
       ],
     );
