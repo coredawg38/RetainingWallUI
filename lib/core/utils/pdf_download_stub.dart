@@ -1,6 +1,11 @@
-/// Stub PDF download for non-web platforms.
+/// Stub file download for non-web platforms.
 library;
 
 import 'dart:typed_data';
 
-bool downloadPdfBytes(Uint8List bytes, String filename) => false;
+bool downloadBytes(
+  Uint8List bytes,
+  String filename, {
+  String mimeType = 'application/octet-stream',
+}) =>
+    false;

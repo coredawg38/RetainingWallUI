@@ -1,4 +1,4 @@
-/// Web implementation of PDF download via object URL + anchor click.
+/// Web implementation of file download via object URL + anchor click.
 library;
 
 import 'dart:js_interop';
@@ -6,10 +6,14 @@ import 'dart:typed_data';
 
 import 'package:web/web.dart' as web;
 
-bool downloadPdfBytes(Uint8List bytes, String filename) {
+bool downloadBytes(
+  Uint8List bytes,
+  String filename, {
+  String mimeType = 'application/octet-stream',
+}) {
   final blob = web.Blob(
     [bytes.toJS].toJS,
-    web.BlobPropertyBag(type: 'application/pdf'),
+    web.BlobPropertyBag(type: mimeType),
   );
   final url = web.URL.createObjectURL(blob);
   final anchor = web.document.createElement('a') as web.HTMLAnchorElement

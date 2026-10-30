@@ -9,6 +9,8 @@
 /// ```
 library;
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -608,6 +610,15 @@ class _NavigationButtons extends ConsumerWidget {
                   : const Icon(Icons.science, size: 18),
               label: const Text('Test'),
             ),
+            const SizedBox(width: 8),
+            OutlinedButton.icon(
+              style: buttonStyle,
+              onPressed: canGenerateTest
+                  ? () => _onDownloadJson(context, ref)
+                  : null,
+              icon: const Icon(Icons.data_object, size: 18),
+              label: const Text('JSON'),
+            ),
           ],
           const Spacer(),
           if (state.currentStep != WizardStep.delivery &&
@@ -686,6 +697,22 @@ class _NavigationButtons extends ConsumerWidget {
           downloaded
               ? 'Test PDF downloaded'
               : 'Test PDF generated, but download is only supported on web',
+        ),
+        backgroundColor: downloaded ? null : Colors.orange,
+      ),
+    );
+  }
+
+  void _onDownloadJson(BuildContext context, WidgetRef ref) {
+    final input = ref.read(wallInputProvider).input;
+    final json = const JsonEncoder.withIndent('  ').convert(input.toJson());
+    final downloaded = downloadJsonString(json, 'RetainingWallInput.json');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          downloaded
+              ? 'JSON downloaded'
+              : 'JSON download is only supported on web',
         ),
         backgroundColor: downloaded ? null : Colors.orange,
       ),

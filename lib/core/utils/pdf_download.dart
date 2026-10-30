@@ -1,6 +1,7 @@
 /// PDF download helpers for triggering a browser file download.
 library;
 
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -16,5 +17,24 @@ bool downloadPdfBytes(List<int> bytes, String filename) {
   if (!kIsWeb) {
     return false;
   }
-  return impl.downloadPdfBytes(Uint8List.fromList(bytes), filename);
+  return impl.downloadBytes(
+    Uint8List.fromList(bytes),
+    filename,
+    mimeType: 'application/pdf',
+  );
+}
+
+/// Triggers a download of [json] text as [filename].
+///
+/// On web, creates an object URL and clicks a temporary anchor.
+/// On other platforms, this is a no-op (returns false).
+bool downloadJsonString(String json, String filename) {
+  if (!kIsWeb) {
+    return false;
+  }
+  return impl.downloadBytes(
+    Uint8List.fromList(utf8.encode(json)),
+    filename,
+    mimeType: 'application/json',
+  );
 }
